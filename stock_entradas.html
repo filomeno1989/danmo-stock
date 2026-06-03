@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSS Stock — Entradas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a href="stock_dashboard.html" class="navbar-brand">
+    <div class="logo-box">DS</div>
+    <div>
+      <div class="brand-name">DANMO SS</div>
+      <div class="brand-sub">Gestão de Stock</div>
+    </div>
+  </a>
+  <div class="navbar-menu">
+    <a href="stock_dashboard.html">📊 Dashboard</a>
+    <a href="stock_entradas.html" class="active">📥 Entradas</a>
+    <a href="stock_saidas.html">📤 Saídas</a>
+    <a href="stock_materiais.html">📦 Materiais</a>
+  </div>
+  <div class="navbar-user">
+    <div>
+      <strong id="user-nome"></strong>
+      <div id="user-nivel" style="font-size:11px; text-transform:uppercase;"></div>
+    </div>
+    <button class="btn-sair" onclick="AUTH.logout()">Sair</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <div class="page-title">📥 Entradas de Material</div>
+  <div class="page-sub">Registe pedidos de compra e confirme a entrada física no armazém</div>
+
+  <!-- FORMULÁRIO NOVO PEDIDO -->
+  <div class="card" id="card-form">
+    <div class="card-title">➕ Novo Pedido de Entrada</div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Material *</label>
+        <select id="f-material">
+          <option value="">-- Seleccione --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quantidade *</label>
+        <input type="number" id="f-qtd" min="0.01" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Fornecedor</label>
+        <select id="f-fornecedor">
+          <option value="">-- Seleccione --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nº P/O</label>
+        <input type="text" id="f-po" placeholder="Ex: PO-2026-001">
+      </div>
+      <div class="form-group">
+        <label>Data do Pedido</label>
+        <input type="date" id="f-data">
+      </div>
+      <div class="form-group">
+        <label>Observações</label>
+        <input type="text" id="f-obs" placeholder="Opcional">
+      </div>
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn btn-primary" onclick="guardarEntrada()">
+        💾 Guardar Pedido
+      </button>
+      <button class="btn btn-ghost" onclick="limparForm()">
+        ✖ Limpar
+      </button>
+    </div>
+  </div>
+
+  <!-- PENDENTES -->
+  <div class="card">
+    <div class="card-title">⏳ Pedidos Pendentes</div>
+    <div id="alerta-pendentes" style="display:none;" class="alert alert-warning">
+      ⚠️ Tens pedidos pendentes à espera de confirmação de entrada.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Material</th>
+            <th>Qtd</th>
+            <th>Fornecedor</th>
+            <th>P/O</th>
+            <th>Observações</th>
+            <th>Acções</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-pendentes">
+          <tr><td colspan="7" class="text-center text-muted" style="padding:24px;">
+            A carregar...
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONFIRMADAS -->
+  <div class="card">
+    <div class="card-title">✅ Entradas Confirmadas</div>
+    <div style="margin-bottom:12px; display:flex; gap:10px; align-items:center;">
+      <input type="text" id="pesquisa" placeholder="🔍 Pesquisar material..."
+             style="max-width:280px;" oninput="filtrarConfirmadas()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data Entrada</th>
+            <th>Material</th>
+            <th>Qtd</th>
+            <th>Unid.</th>
+            <th>Fornecedor</th>
+            <th>P/O</th>
+            <th>Recebido por</th>
+            <th>Obs.</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-confirmadas">
+          <tr><td colspan="8" class="text-center text-muted" style="padding:24px;">
+            A carregar...
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL CONFIRMAR ENTRADA -->
+<div id="modal-confirmar" style="display:none; position:fixed; inset:0;
+     background:rgba(0,0,0,0.6); z-index:500;
+     align-items:center; justify-content:center;">
+  <div style="background:var(--navy2); border:1px solid var(--border);
+              border-radius:12px; padding:28px; width:100%; max-width:420px;">
+    <div style="font-size:17px; font-weight:700; color:var(--amber); margin-bottom:20px;">
+      ✅ Confirmar Entrada no Armazém
+    </div>
+    <p style="color:var(--text2); font-size:14px; margin-bottom:16px;">
+      Material: <strong id="modal-material" style="color:var(--text);"></strong>
+    </p>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Quantidade Recebida *</label>
+      <input type="number" id="modal-qtd" min="0.01" step="0.01">
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Data de Entrada</label>
+      <input type="date" id="modal-data">
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label>Observações</label>
+      <input type="text" id="modal-obs" placeholder="Ex: Falta 1 unidade">
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarEntrada()">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+<script src="utils.js"></script>
+<script>
+  AUTH.exigir();
+  document.getElementById('user-nome').textContent  = AUTH.nome();
+  document.getElementById('user-nivel').textContent = AUTH.nivel();
+  document.getElementById('f-data').value = hoje();
+
+  let materiais    = [];
+  let fornecedores = [];
+  let pendentes    = [];
+  let confirmadas  = [];
+  let modalId      = null;
+
+  async function init() {
+    // Carregar materiais
+    materiais = await db.query('materiais', 'ativo=eq.true&order=nome.asc');
+    const selMat = document.getElementById('f-material');
+    materiais.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = `${m.referencia} — ${m.nome}`;
+      selMat.appendChild(o);
+    });
+
+    // Carregar fornecedores
+    fornecedores = await db.query('fornecedores', 'ativo=eq.true&order=nome.asc');
+    const selForn = document.getElementById('f-fornecedor');
+    fornecedores.forEach(f => {
+      const o = document.createElement('option');
+      o.value = f.nome;
+      o.textContent = f.nome;
+      selForn.appendChild(o);
+    });
+
+    await carregarMovimentos();
+  }
+
+  async function carregarMovimentos() {
+    const todos = await db.query('stock_movimentos',
+      'tipo=eq.entrada&order=criado_em.desc');
+
+    // Juntar nome do material
+    pendentes   = [];
+    confirmadas = [];
+
+    todos.forEach(m => {
+      const mat = materiais.find(x => x.id === m.material_id);
+      m._mat = mat ? `${mat.referencia} — ${mat.nome}` : '—';
+      m._unid = mat ? mat.unidade : '';
+      if (m.estado === 'pendente')   pendentes.push(m);
+      if (m.estado === 'confirmado') confirmadas.push(m);
+    });
+
+    renderPendentes();
+    renderConfirmadas();
+  }
+
+  function renderPendentes() {
+    const tb = document.getElementById('tbody-pendentes');
+    const alerta = document.getElementById('alerta-pendentes');
+
+    if (pendentes.length === 0) {
+      tb.innerHTML = `<tr><td colspan="7" class="text-center text-muted"
+        style="padding:24px;">Nenhum pedido pendente</td></tr>`;
+      alerta.style.display = 'none';
+      return;
+    }
+
+    alerta.style.display = 'flex';
+    tb.innerHTML = pendentes.map(m => `
+      <tr>
+        <td>${fmtData(m.data_movimento)}</td>
+        <td><strong>${m._mat}</strong></td>
+        <td>${fmtNum(m.quantidade, 2)}</td>
+        <td>${m.fornecedor || '—'}</td>
+        <td>${m.numero_po || '—'}</td>
+        <td>${m.observacoes || '—'}</td>
+        <td>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-success btn-sm"
+              onclick="abrirModal('${m.id}')">
+              ✅ Confirmar Entrada
+            </button>
+            <button class="btn btn-ghost btn-sm"
+              onclick="eliminarPendente('${m.id}')">
+              🗑
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderConfirmadas(filtro = '') {
+    const tb = document.getElementById('tbody-confirmadas');
+    const lista = filtro
+      ? confirmadas.filter(m =>
+          m._mat.toLowerCase().includes(filtro.toLowerCase()))
+      : confirmadas;
+
+    if (lista.length === 0) {
+      tb.innerHTML = `<tr><td colspan="8" class="text-center text-muted"
+        style="padding:24px;">Nenhuma entrada confirmada</td></tr>`;
+      return;
+    }
+
+    tb.innerHTML = lista.map(m => `
+      <tr>
+        <td>${fmtData(m.data_confirmacao || m.data_movimento)}</td>
+        <td><strong>${m._mat}</strong></td>
+        <td style="color:var(--green); font-weight:700;">${fmtNum(m.quantidade, 2)}</td>
+        <td>${m._unid}</td>
+        <td>${m.fornecedor || '—'}</td>
+        <td>${m.numero_po || '—'}</td>
+        <td>${m.colaborador_nome || '—'}</td>
+        <td>${m.observacoes || '—'}</td>
+      </tr>
+    `).join('');
+  }
+
+  function filtrarConfirmadas() {
+    const f = document.getElementById('pesquisa').value;
+    renderConfirmadas(f);
+  }
+
+  async function guardarEntrada() {
+    const mat  = document.getElementById('f-material').value;
+    const qtd  = parseFloat(document.getElementById('f-qtd').value);
+    const forn = document.getElementById('f-fornecedor').value;
+    const po   = document.getElementById('f-po').value.trim();
+    const data = document.getElementById('f-data').value;
+    const obs  = document.getElementById('f-obs').value.trim();
+
+    if (!mat) { showToast('Selecciona um material!', 'warning'); return; }
+    if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
+
+    const res = await db.insert('stock_movimentos', {
+      tipo: 'entrada',
+      estado: 'pendente',
+      material_id: mat,
+      quantidade: qtd,
+      data_movimento: data || hoje(),
+      fornecedor: forn,
+      numero_po: po,
+      observacoes: obs,
+      colaborador_id: AUTH.id()
+    });
+
+    if (res && res.length > 0) {
+      showToast('Pedido guardado! Aguarda confirmação de entrada.', 'success');
+      limparForm();
+      await carregarMovimentos();
+    } else {
+      showToast('Erro ao guardar. Tenta novamente.', 'error');
+    }
+  }
+
+  function limparForm() {
+    document.getElementById('f-material').value  = '';
+    document.getElementById('f-qtd').value       = '';
+    document.getElementById('f-fornecedor').value = '';
+    document.getElementById('f-po').value        = '';
+    document.getElementById('f-obs').value       = '';
+    document.getElementById('f-data').value      = hoje();
+  }
+
+  function abrirModal(id) {
+    modalId = id;
+    const m = pendentes.find(x => x.id === id);
+    document.getElementById('modal-material').textContent = m._mat;
+    document.getElementById('modal-qtd').value  = m.quantidade;
+    document.getElementById('modal-data').value = hoje();
+    document.getElementById('modal-obs').value  = '';
+    const modal = document.getElementById('modal-confirmar');
+    modal.style.display = 'flex';
+  }
+
+  function fecharModal() {
+    document.getElementById('modal-confirmar').style.display = 'none';
+    modalId = null;
+  }
+
+  async function confirmarEntrada() {
+    const qtd  = parseFloat(document.getElementById('modal-qtd').value);
+    const data = document.getElementById('modal-data').value;
+    const obs  = document.getElementById('modal-obs').value.trim();
+
+    if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
+
+    const res = await db.update('stock_movimentos', modalId, {
+      estado: 'confirmado',
+      quantidade: qtd,
+      data_confirmacao: data || hoje(),
+      observacoes: obs,
+      colaborador_id: AUTH.id()
+    });
+
+    if (res && res.length > 0) {
+      showToast('Entrada confirmada no armazém! ✅', 'success');
+      fecharModal();
+      await carregarMovimentos();
+    } else {
+      showToast('Erro ao confirmar. Tenta novamente.', 'error');
+    }
+  }
+
+  async function eliminarPendente(id) {
+    const ok = await confirmar('Eliminar este pedido pendente?');
+    if (!ok) return;
+    await db.delete('stock_movimentos', id);
+    showToast('Pedido eliminado.', 'info');
+    await carregarMovimentos();
+  }
+
+  // Fechar modal ao clicar fora
+  document.getElementById('modal-confirmar').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+  });
+
+  init();
+</script>
+
+</body>
+</html>
