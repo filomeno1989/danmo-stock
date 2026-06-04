@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar">
   <a href="stock_dashboard.html" class="navbar-brand">
     <div class="logo-box">DS</div>
@@ -22,6 +21,7 @@
     <a href="stock_entradas.html" class="active">📥 Entradas</a>
     <a href="stock_saidas.html">📤 Saídas</a>
     <a href="stock_materiais.html">📦 Materiais</a>
+    <a href="stock_configuracoes.html">⚙️ Configurações</a>
   </div>
   <div class="navbar-user">
     <div>
@@ -32,22 +32,16 @@
   </div>
 </nav>
 
-<!-- MAIN -->
 <div class="main">
-
   <div class="page-title">📥 Entradas de Material</div>
   <div class="page-sub">Registe pedidos de compra e confirme a entrada física no armazém</div>
 
-  <!-- FORMULÁRIO NOVO PEDIDO -->
   <div class="card" id="card-form">
     <div class="card-title">➕ Novo Pedido de Entrada</div>
-
     <div class="form-grid">
       <div class="form-group">
         <label>Material *</label>
-        <select id="f-material">
-          <option value="">-- Seleccione --</option>
-        </select>
+        <select id="f-material"></select>
       </div>
       <div class="form-group">
         <label>Quantidade *</label>
@@ -55,13 +49,19 @@
       </div>
       <div class="form-group">
         <label>Fornecedor</label>
-        <select id="f-fornecedor">
-          <option value="">-- Seleccione --</option>
-        </select>
+        <select id="f-fornecedor"></select>
       </div>
       <div class="form-group">
-        <label>Nº P/O</label>
-        <input type="text" id="f-po" placeholder="Ex: PO-2026-001">
+        <label>Nº Pro-forma / Cotação</label>
+        <input type="text" id="f-po" placeholder="Ex: COT-2026-001">
+      </div>
+      <div class="form-group">
+        <label>Departamento Solicitante</label>
+        <select id="f-departamento"></select>
+      </div>
+      <div class="form-group">
+        <label>Quem Foi Comprar</label>
+        <select id="f-comprador"></select>
       </div>
       <div class="form-group">
         <label>Data do Pedido</label>
@@ -72,18 +72,12 @@
         <input type="text" id="f-obs" placeholder="Opcional">
       </div>
     </div>
-
     <div style="margin-top:20px; display:flex; gap:10px;">
-      <button class="btn btn-primary" onclick="guardarEntrada()">
-        💾 Guardar Pedido
-      </button>
-      <button class="btn btn-ghost" onclick="limparForm()">
-        ✖ Limpar
-      </button>
+      <button class="btn btn-primary" onclick="guardarEntrada()">💾 Guardar Pedido</button>
+      <button class="btn btn-ghost" onclick="limparForm()">✖ Limpar</button>
     </div>
   </div>
 
-  <!-- PENDENTES -->
   <div class="card">
     <div class="card-title">⏳ Pedidos Pendentes</div>
     <div id="alerta-pendentes" style="display:none;" class="alert alert-warning">
@@ -97,24 +91,23 @@
             <th>Material</th>
             <th>Qtd</th>
             <th>Fornecedor</th>
-            <th>P/O</th>
-            <th>Observações</th>
+            <th>Pro-forma/Cot.</th>
+            <th>Departamento</th>
+            <th>Comprador</th>
+            <th>Obs.</th>
             <th>Acções</th>
           </tr>
         </thead>
         <tbody id="tbody-pendentes">
-          <tr><td colspan="7" class="text-center text-muted" style="padding:24px;">
-            A carregar...
-          </td></tr>
+          <tr><td colspan="9" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- CONFIRMADAS -->
   <div class="card">
     <div class="card-title">✅ Entradas Confirmadas</div>
-    <div style="margin-bottom:12px; display:flex; gap:10px; align-items:center;">
+    <div style="margin-bottom:12px;">
       <input type="text" id="pesquisa" placeholder="🔍 Pesquisar material..."
              style="max-width:280px;" oninput="filtrarConfirmadas()">
     </div>
@@ -127,26 +120,23 @@
             <th>Qtd</th>
             <th>Unid.</th>
             <th>Fornecedor</th>
-            <th>P/O</th>
+            <th>Pro-forma/Cot.</th>
+            <th>Departamento</th>
             <th>Recebido por</th>
             <th>Obs.</th>
           </tr>
         </thead>
         <tbody id="tbody-confirmadas">
-          <tr><td colspan="8" class="text-center text-muted" style="padding:24px;">
-            A carregar...
-          </td></tr>
+          <tr><td colspan="9" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-
 </div>
 
-<!-- MODAL CONFIRMAR ENTRADA -->
+<!-- MODAL CONFIRMAR -->
 <div id="modal-confirmar" style="display:none; position:fixed; inset:0;
-     background:rgba(0,0,0,0.6); z-index:500;
-     align-items:center; justify-content:center;">
+     background:rgba(0,0,0,0.6); z-index:500; align-items:center; justify-content:center;">
   <div style="background:var(--navy2); border:1px solid var(--border);
               border-radius:12px; padding:28px; width:100%; max-width:420px;">
     <div style="font-size:17px; font-weight:700; color:var(--amber); margin-bottom:20px;">
@@ -158,6 +148,10 @@
     <div class="form-group" style="margin-bottom:16px;">
       <label>Quantidade Recebida *</label>
       <input type="number" id="modal-qtd" min="0.01" step="0.01">
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Quem Recebeu</label>
+      <select id="modal-recebedor"></select>
     </div>
     <div class="form-group" style="margin-bottom:16px;">
       <label>Data de Entrada</label>
@@ -183,52 +177,59 @@
   document.getElementById('user-nivel').textContent = AUTH.nivel();
   document.getElementById('f-data').value = hoje();
 
-  let materiais    = [];
-  let fornecedores = [];
-  let pendentes    = [];
-  let confirmadas  = [];
-  let modalId      = null;
+  let materiais = [], fornecedores = [], departamentos = [];
+  let colaboradores = [], pendentes = [], confirmadas = [];
+  let modalId = null;
 
   async function init() {
-    // Carregar materiais
-    materiais = await db.query('materiais', 'ativo=eq.true&order=nome.asc');
-    const selMat = document.getElementById('f-material');
-    materiais.forEach(m => {
-      const o = document.createElement('option');
-      o.value = m.id;
-      o.textContent = `${m.referencia} — ${m.nome}`;
-      selMat.appendChild(o);
-    });
+    const [mats, forns, deptos, colabs] = await Promise.all([
+      db.query('materiais', 'ativo=eq.true&order=nome.asc'),
+      db.query('fornecedores', 'ativo=eq.true&order=nome.asc'),
+      db.query('departamentos', 'ativo=eq.true&order=nome.asc'),
+      db.query('collaborators', 'active=eq.true&order=name.asc')
+    ]);
 
-    // Carregar fornecedores
-    fornecedores = await db.query('fornecedores', 'ativo=eq.true&order=nome.asc');
-    const selForn = document.getElementById('f-fornecedor');
-    fornecedores.forEach(f => {
-      const o = document.createElement('option');
-      o.value = f.nome;
-      o.textContent = f.nome;
-      selForn.appendChild(o);
-    });
+    materiais     = mats;
+    fornecedores  = forns;
+    departamentos = deptos;
+    colaboradores = colabs;
+
+    preencherSelect('f-material', materiais, m => `${m.referencia} — ${m.nome}`, m => m.id);
+    preencherSelect('f-fornecedor', fornecedores, f => f.nome, f => f.nome, '-- Seleccione --');
+    preencherSelect('f-departamento', departamentos, d => d.nome, d => d.nome, '-- Seleccione --');
+    preencherSelect('f-comprador', colaboradores, c => `${c.code} — ${c.name}`, c => c.id, '-- Seleccione --');
+    preencherSelect('modal-recebedor', colaboradores, c => `${c.code} — ${c.name}`, c => c.id, '-- Seleccione --');
 
     await carregarMovimentos();
   }
 
+  function preencherSelect(id, lista, labelFn, valueFn, placeholder = null) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    if (placeholder) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = placeholder;
+      sel.appendChild(o);
+    }
+    lista.forEach(item => {
+      const o = document.createElement('option');
+      o.value = valueFn(item);
+      o.textContent = labelFn(item);
+      sel.appendChild(o);
+    });
+  }
+
   async function carregarMovimentos() {
-    const todos = await db.query('stock_movimentos',
-      'tipo=eq.entrada&order=criado_em.desc');
-
-    // Juntar nome do material
-    pendentes   = [];
+    const todos = await db.query('stock_movimentos', 'tipo=eq.entrada&order=criado_em.desc');
+    pendentes  = [];
     confirmadas = [];
-
     todos.forEach(m => {
       const mat = materiais.find(x => x.id === m.material_id);
-      m._mat = mat ? `${mat.referencia} — ${mat.nome}` : '—';
+      m._mat  = mat ? `${mat.referencia} — ${mat.nome}` : '—';
       m._unid = mat ? mat.unidade : '';
       if (m.estado === 'pendente')   pendentes.push(m);
       if (m.estado === 'confirmado') confirmadas.push(m);
     });
-
     renderPendentes();
     renderConfirmadas();
   }
@@ -236,14 +237,11 @@
   function renderPendentes() {
     const tb = document.getElementById('tbody-pendentes');
     const alerta = document.getElementById('alerta-pendentes');
-
     if (pendentes.length === 0) {
-      tb.innerHTML = `<tr><td colspan="7" class="text-center text-muted"
-        style="padding:24px;">Nenhum pedido pendente</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:24px;">Nenhum pedido pendente</td></tr>`;
       alerta.style.display = 'none';
       return;
     }
-
     alerta.style.display = 'flex';
     tb.innerHTML = pendentes.map(m => `
       <tr>
@@ -252,36 +250,27 @@
         <td>${fmtNum(m.quantidade, 2)}</td>
         <td>${m.fornecedor || '—'}</td>
         <td>${m.numero_po || '—'}</td>
+        <td>${m.departamento || '—'}</td>
+        <td>${m.comprador_nome || '—'}</td>
         <td>${m.observacoes || '—'}</td>
         <td>
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-success btn-sm"
-              onclick="abrirModal('${m.id}')">
-              ✅ Confirmar Entrada
-            </button>
-            <button class="btn btn-ghost btn-sm"
-              onclick="eliminarPendente('${m.id}')">
-              🗑
-            </button>
+            <button class="btn btn-success btn-sm" onclick="abrirModal('${m.id}')">✅ Confirmar</button>
+            <button class="btn btn-ghost btn-sm" onclick="eliminarPendente('${m.id}')">🗑</button>
           </div>
         </td>
-      </tr>
-    `).join('');
+      </tr>`).join('');
   }
 
   function renderConfirmadas(filtro = '') {
     const tb = document.getElementById('tbody-confirmadas');
     const lista = filtro
-      ? confirmadas.filter(m =>
-          m._mat.toLowerCase().includes(filtro.toLowerCase()))
+      ? confirmadas.filter(m => m._mat.toLowerCase().includes(filtro.toLowerCase()))
       : confirmadas;
-
     if (lista.length === 0) {
-      tb.innerHTML = `<tr><td colspan="8" class="text-center text-muted"
-        style="padding:24px;">Nenhuma entrada confirmada</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:24px;">Nenhuma entrada confirmada</td></tr>`;
       return;
     }
-
     tb.innerHTML = lista.map(m => `
       <tr>
         <td>${fmtData(m.data_confirmacao || m.data_movimento)}</td>
@@ -290,42 +279,46 @@
         <td>${m._unid}</td>
         <td>${m.fornecedor || '—'}</td>
         <td>${m.numero_po || '—'}</td>
-        <td>${m.colaborador_nome || '—'}</td>
+        <td>${m.departamento || '—'}</td>
+        <td>${m.recebedor_nome || '—'}</td>
         <td>${m.observacoes || '—'}</td>
-      </tr>
-    `).join('');
+      </tr>`).join('');
   }
 
   function filtrarConfirmadas() {
-    const f = document.getElementById('pesquisa').value;
-    renderConfirmadas(f);
+    renderConfirmadas(document.getElementById('pesquisa').value);
   }
 
   async function guardarEntrada() {
-    const mat  = document.getElementById('f-material').value;
-    const qtd  = parseFloat(document.getElementById('f-qtd').value);
-    const forn = document.getElementById('f-fornecedor').value;
-    const po   = document.getElementById('f-po').value.trim();
-    const data = document.getElementById('f-data').value;
-    const obs  = document.getElementById('f-obs').value.trim();
+    const mat    = document.getElementById('f-material').value;
+    const qtd    = parseFloat(document.getElementById('f-qtd').value);
+    const forn   = document.getElementById('f-fornecedor').value;
+    const po     = document.getElementById('f-po').value.trim();
+    const depto  = document.getElementById('f-departamento').value;
+    const compId = document.getElementById('f-comprador').value;
+    const data   = document.getElementById('f-data').value;
+    const obs    = document.getElementById('f-obs').value.trim();
 
-    if (!mat) { showToast('Selecciona um material!', 'warning'); return; }
+    if (!mat)        { showToast('Selecciona um material!', 'warning'); return; }
     if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
 
+    // Nome do comprador
+    const comp = colaboradores.find(c => c.id == compId);
+    const compNome = comp ? comp.name : '';
+
     const res = await db.insert('stock_movimentos', {
-      tipo: 'entrada',
-      estado: 'pendente',
-      material_id: mat,
-      quantidade: qtd,
+      tipo: 'entrada', estado: 'pendente',
+      material_id: mat, quantidade: qtd,
       data_movimento: data || hoje(),
-      fornecedor: forn,
-      numero_po: po,
+      fornecedor: forn, numero_po: po,
+      departamento: depto,
+      comprador_nome: compNome,
       observacoes: obs,
       colaborador_id: AUTH.id()
     });
 
     if (res && res.length > 0) {
-      showToast('Pedido guardado! Aguarda confirmação de entrada.', 'success');
+      showToast('Pedido guardado! Aguarda confirmação.', 'success');
       limparForm();
       await carregarMovimentos();
     } else {
@@ -334,12 +327,11 @@
   }
 
   function limparForm() {
-    document.getElementById('f-material').value  = '';
-    document.getElementById('f-qtd').value       = '';
-    document.getElementById('f-fornecedor').value = '';
-    document.getElementById('f-po').value        = '';
-    document.getElementById('f-obs').value       = '';
-    document.getElementById('f-data').value      = hoje();
+    ['f-material','f-qtd','f-fornecedor','f-po',
+     'f-departamento','f-comprador','f-obs'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-data').value = hoje();
   }
 
   function abrirModal(id) {
@@ -349,8 +341,7 @@
     document.getElementById('modal-qtd').value  = m.quantidade;
     document.getElementById('modal-data').value = hoje();
     document.getElementById('modal-obs').value  = '';
-    const modal = document.getElementById('modal-confirmar');
-    modal.style.display = 'flex';
+    document.getElementById('modal-confirmar').style.display = 'flex';
   }
 
   function fecharModal() {
@@ -359,16 +350,20 @@
   }
 
   async function confirmarEntrada() {
-    const qtd  = parseFloat(document.getElementById('modal-qtd').value);
-    const data = document.getElementById('modal-data').value;
-    const obs  = document.getElementById('modal-obs').value.trim();
+    const qtd      = parseFloat(document.getElementById('modal-qtd').value);
+    const data     = document.getElementById('modal-data').value;
+    const obs      = document.getElementById('modal-obs').value.trim();
+    const recebId  = document.getElementById('modal-recebedor').value;
 
     if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
 
+    const receb = colaboradores.find(c => c.id == recebId);
+    const recebNome = receb ? receb.name : '';
+
     const res = await db.update('stock_movimentos', modalId, {
-      estado: 'confirmado',
-      quantidade: qtd,
+      estado: 'confirmado', quantidade: qtd,
       data_confirmacao: data || hoje(),
+      recebedor_nome: recebNome,
       observacoes: obs,
       colaborador_id: AUTH.id()
     });
@@ -390,13 +385,11 @@
     await carregarMovimentos();
   }
 
-  // Fechar modal ao clicar fora
   document.getElementById('modal-confirmar').addEventListener('click', function(e) {
     if (e.target === this) fecharModal();
   });
 
   init();
 </script>
-
 </body>
 </html>
