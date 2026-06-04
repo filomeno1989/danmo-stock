@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSS Stock — Saídas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a href="stock_dashboard.html" class="navbar-brand">
+    <div class="logo-box">DS</div>
+    <div>
+      <div class="brand-name">DANMO SS</div>
+      <div class="brand-sub">Gestão de Stock</div>
+    </div>
+  </a>
+  <div class="navbar-menu">
+    <a href="stock_dashboard.html">📊 Dashboard</a>
+    <a href="stock_entradas.html">📥 Entradas</a>
+    <a href="stock_saidas.html" class="active">📤 Saídas</a>
+    <a href="stock_materiais.html">📦 Materiais</a>
+  </div>
+  <div class="navbar-user">
+    <div>
+      <strong id="user-nome"></strong>
+      <div id="user-nivel" style="font-size:11px; text-transform:uppercase;"></div>
+    </div>
+    <button class="btn-sair" onclick="AUTH.logout()">Sair</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <div class="page-title">📤 Saídas de Material</div>
+  <div class="page-sub">Registe o levantamento de material do armazém</div>
+
+  <!-- FORMULÁRIO -->
+  <div class="card">
+    <div class="card-title">➕ Registar Saída</div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Material *</label>
+        <select id="f-material" onchange="mostrarStock()">
+          <option value="">-- Seleccione --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Stock Disponível</label>
+        <input type="text" id="f-stock" readonly
+               style="background:var(--navy3); cursor:default;"
+               placeholder="Seleccione um material">
+      </div>
+      <div class="form-group">
+        <label>Quantidade *</label>
+        <input type="number" id="f-qtd" min="0.01" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Colaborador que Levanta *</label>
+        <select id="f-colaborador">
+          <option value="">-- Seleccione --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Departamento</label>
+        <select id="f-departamento">
+          <option value="">-- Seleccione --</option>
+          <option>Serralharia</option>
+          <option>Electrico</option>
+          <option>Mecanico</option>
+          <option>Pneumatico</option>
+          <option>Torneiro Mecanico</option>
+          <option>Lubrificador</option>
+          <option>Pintor</option>
+          <option>Adm. Oficinal</option>
+          <option>Dep. Tecnico</option>
+          <option>Motorista</option>
+          <option>Planificação/Inspecção</option>
+          <option>Bate-Chapa</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Finalidade / Obra</label>
+        <select id="f-finalidade">
+          <option value="">-- Seleccione --</option>
+          <option>Manutenção Corretiva</option>
+          <option>Manutenção Preventiva</option>
+          <option>Operação/Uso Oficinal</option>
+          <option>Uso Pessoal</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nº Requisição</label>
+        <input type="text" id="f-requisicao" placeholder="Ex: REQ-2026-001">
+      </div>
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" id="f-data">
+      </div>
+      <div class="form-group">
+        <label>Observações</label>
+        <input type="text" id="f-obs" placeholder="Opcional">
+      </div>
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button class="btn btn-primary" onclick="guardarSaida()">
+        💾 Registar Saída
+      </button>
+      <button class="btn btn-ghost" onclick="limparForm()">
+        ✖ Limpar
+      </button>
+    </div>
+  </div>
+
+  <!-- LISTAGEM -->
+  <div class="card">
+    <div class="card-title">📋 Histórico de Saídas</div>
+    <div style="margin-bottom:12px; display:flex; gap:10px; align-items:center;">
+      <input type="text" id="pesquisa" placeholder="🔍 Pesquisar material ou colaborador..."
+             style="max-width:320px;" oninput="filtrar()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Material</th>
+            <th>Qtd</th>
+            <th>Unid.</th>
+            <th>Colaborador</th>
+            <th>Departamento</th>
+            <th>Finalidade</th>
+            <th>Nº Req.</th>
+            <th>Obs.</th>
+            <th>Acções</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-saidas">
+          <tr><td colspan="10" class="text-center text-muted" style="padding:24px;">
+            A carregar...
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+<script src="utils.js"></script>
+<script>
+  AUTH.exigir();
+  document.getElementById('user-nome').textContent  = AUTH.nome();
+  document.getElementById('user-nivel').textContent = AUTH.nivel();
+  document.getElementById('f-data').value = hoje();
+
+  let materiais  = [];
+  let saidas     = [];
+  let stockCalc  = {};
+
+  async function init() {
+    // Carregar materiais
+    materiais = await db.query('materiais', 'ativo=eq.true&order=nome.asc');
+    const selMat = document.getElementById('f-material');
+    materiais.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = `${m.referencia} — ${m.nome}`;
+      selMat.appendChild(o);
+    });
+
+    // Carregar colaboradores
+    const colab = await db.query('utilizadores', 'ativo=eq.true&order=nome.asc');
+    const selCol = document.getElementById('f-colaborador');
+    colab.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = c.nome;
+      selCol.appendChild(o);
+    });
+
+    // Calcular stock actual por material
+    await calcularStock();
+    await carregarSaidas();
+  }
+
+  async function calcularStock() {
+    const movs = await db.query('stock_movimentos', 'estado=eq.confirmado');
+    stockCalc = {};
+    movs.forEach(m => {
+      if (!stockCalc[m.material_id]) stockCalc[m.material_id] = 0;
+      if (m.tipo === 'entrada') stockCalc[m.material_id] += Number(m.quantidade);
+      if (m.tipo === 'saida')   stockCalc[m.material_id] -= Number(m.quantidade);
+    });
+  }
+
+  function mostrarStock() {
+    const matId = document.getElementById('f-material').value;
+    const mat   = materiais.find(x => x.id === matId);
+    const stock = stockCalc[matId] || 0;
+    const campo = document.getElementById('f-stock');
+
+    if (!mat) { campo.value = ''; return; }
+
+    campo.value = `${fmtNum(stock, 2)} ${mat.unidade}`;
+    campo.style.color = stock <= (mat.stock_minimo || 0)
+      ? 'var(--red)' : 'var(--green)';
+  }
+
+  async function carregarSaidas() {
+    const todos = await db.query('stock_movimentos',
+      'tipo=eq.saida&estado=eq.confirmado&order=criado_em.desc');
+
+    saidas = todos.map(m => {
+      const mat = materiais.find(x => x.id === m.material_id);
+      m._mat  = mat ? `${mat.referencia} — ${mat.nome}` : '—';
+      m._unid = mat ? mat.unidade : '';
+      return m;
+    });
+
+    renderSaidas();
+  }
+
+  function renderSaidas(filtro = '') {
+    const tb = document.getElementById('tbody-saidas');
+    const lista = filtro
+      ? saidas.filter(m =>
+          m._mat.toLowerCase().includes(filtro.toLowerCase()) ||
+          (m.colaborador_nome || '').toLowerCase().includes(filtro.toLowerCase()))
+      : saidas;
+
+    if (lista.length === 0) {
+      tb.innerHTML = `<tr><td colspan="10" class="text-center text-muted"
+        style="padding:24px;">Nenhuma saída registada</td></tr>`;
+      return;
+    }
+
+    tb.innerHTML = lista.map(m => `
+      <tr>
+        <td>${fmtData(m.data_movimento)}</td>
+        <td><strong>${m._mat}</strong></td>
+        <td style="color:var(--red); font-weight:700;">-${fmtNum(m.quantidade, 2)}</td>
+        <td>${m._unid}</td>
+        <td>${m.departamento || '—'}</td>
+        <td>${m.finalidade || '—'}</td>
+        <td>${m.numero_requisicao || '—'}</td>
+        <td>${m.observacoes || '—'}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm"
+            onclick="eliminar('${m.id}')">🗑</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function filtrar() {
+    renderSaidas(document.getElementById('pesquisa').value);
+  }
+
+  async function guardarSaida() {
+    const matId  = document.getElementById('f-material').value;
+    const qtd    = parseFloat(document.getElementById('f-qtd').value);
+    const colId  = document.getElementById('f-colaborador').value;
+    const depto  = document.getElementById('f-departamento').value;
+    const final  = document.getElementById('f-finalidade').value;
+    const req    = document.getElementById('f-requisicao').value.trim();
+    const data   = document.getElementById('f-data').value;
+    const obs    = document.getElementById('f-obs').value.trim();
+
+    if (!matId) { showToast('Selecciona um material!', 'warning'); return; }
+    if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
+    if (!colId) { showToast('Selecciona o colaborador!', 'warning'); return; }
+
+    // Verificar stock suficiente
+    const stockDisp = stockCalc[matId] || 0;
+    if (qtd > stockDisp) {
+      showToast(`Stock insuficiente! Disponível: ${fmtNum(stockDisp, 2)}`, 'error');
+      return;
+    }
+
+    const res = await db.insert('stock_movimentos', {
+      tipo: 'saida',
+      estado: 'confirmado',
+      material_id: matId,
+      quantidade: qtd,
+      data_movimento: data || hoje(),
+      data_confirmacao: data || hoje(),
+      departamento: depto,
+      finalidade: final,
+      numero_requisicao: req,
+      observacoes: obs,
+      colaborador_id: colId
+    });
+
+    if (res && res.length > 0) {
+      showToast('Saída registada com sucesso! ✅', 'success');
+      limparForm();
+      await calcularStock();
+      await carregarSaidas();
+    } else {
+      showToast('Erro ao registar. Tenta novamente.', 'error');
+    }
+  }
+
+  function limparForm() {
+    document.getElementById('f-material').value     = '';
+    document.getElementById('f-qtd').value          = '';
+    document.getElementById('f-colaborador').value  = '';
+    document.getElementById('f-departamento').value = '';
+    document.getElementById('f-finalidade').value   = '';
+    document.getElementById('f-requisicao').value   = '';
+    document.getElementById('f-obs').value          = '';
+    document.getElementById('f-data').value         = hoje();
+    document.getElementById('f-stock').value        = '';
+  }
+
+  async function eliminar(id) {
+    const ok = await confirmar('Eliminar este registo de saída?');
+    if (!ok) return;
+    await db.delete('stock_movimentos', id);
+    showToast('Registo eliminado.', 'info');
+    await calcularStock();
+    await carregarSaidas();
+  }
+
+  init();
+</script>
+
+</body>
+</html>
