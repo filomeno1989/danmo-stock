@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar">
   <a href="stock_dashboard.html" class="navbar-brand">
     <div class="logo-box">DS</div>
@@ -22,6 +21,7 @@
     <a href="stock_entradas.html">📥 Entradas</a>
     <a href="stock_saidas.html" class="active">📤 Saídas</a>
     <a href="stock_materiais.html">📦 Materiais</a>
+    <a href="stock_configuracoes.html">⚙️ Configurações</a>
   </div>
   <div class="navbar-user">
     <div>
@@ -32,28 +32,21 @@
   </div>
 </nav>
 
-<!-- MAIN -->
 <div class="main">
-
   <div class="page-title">📤 Saídas de Material</div>
   <div class="page-sub">Registe o levantamento de material do armazém</div>
 
-  <!-- FORMULÁRIO -->
   <div class="card">
     <div class="card-title">➕ Registar Saída</div>
-
     <div class="form-grid">
       <div class="form-group">
         <label>Material *</label>
-        <select id="f-material" onchange="mostrarStock()">
-          <option value="">-- Seleccione --</option>
-        </select>
+        <select id="f-material" onchange="mostrarStock()"></select>
       </div>
       <div class="form-group">
         <label>Stock Disponível</label>
         <input type="text" id="f-stock" readonly
-               style="background:var(--navy3); cursor:default;"
-               placeholder="Seleccione um material">
+               style="background:var(--navy3); cursor:default;" placeholder="—">
       </div>
       <div class="form-group">
         <label>Quantidade *</label>
@@ -61,38 +54,19 @@
       </div>
       <div class="form-group">
         <label>Colaborador que Levanta *</label>
-        <select id="f-colaborador">
-          <option value="">-- Seleccione --</option>
-        </select>
+        <select id="f-colaborador"></select>
+      </div>
+      <div class="form-group">
+        <label>Fornecido por</label>
+        <select id="f-fornecedor"></select>
       </div>
       <div class="form-group">
         <label>Departamento</label>
-        <select id="f-departamento">
-          <option value="">-- Seleccione --</option>
-          <option>Serralharia</option>
-          <option>Electrico</option>
-          <option>Mecanico</option>
-          <option>Pneumatico</option>
-          <option>Torneiro Mecanico</option>
-          <option>Lubrificador</option>
-          <option>Pintor</option>
-          <option>Adm. Oficinal</option>
-          <option>Dep. Tecnico</option>
-          <option>Motorista</option>
-          <option>Planificação/Inspecção</option>
-          <option>Bate-Chapa</option>
-        </select>
+        <select id="f-departamento"></select>
       </div>
       <div class="form-group">
-        <label>Finalidade / Obra</label>
-        <select id="f-finalidade">
-          <option value="">-- Seleccione --</option>
-          <option>Manutenção Corretiva</option>
-          <option>Manutenção Preventiva</option>
-          <option>Operação/Uso Oficinal</option>
-          <option>Uso Pessoal</option>
-          <option>Outro</option>
-        </select>
+        <label>Finalidade</label>
+        <select id="f-finalidade"></select>
       </div>
       <div class="form-group">
         <label>Nº Requisição</label>
@@ -107,21 +81,15 @@
         <input type="text" id="f-obs" placeholder="Opcional">
       </div>
     </div>
-
     <div style="margin-top:20px; display:flex; gap:10px;">
-      <button class="btn btn-primary" onclick="guardarSaida()">
-        💾 Registar Saída
-      </button>
-      <button class="btn btn-ghost" onclick="limparForm()">
-        ✖ Limpar
-      </button>
+      <button class="btn btn-primary" onclick="guardarSaida()">💾 Registar Saída</button>
+      <button class="btn btn-ghost" onclick="limparForm()">✖ Limpar</button>
     </div>
   </div>
 
-  <!-- LISTAGEM -->
   <div class="card">
     <div class="card-title">📋 Histórico de Saídas</div>
-    <div style="margin-bottom:12px; display:flex; gap:10px; align-items:center;">
+    <div style="margin-bottom:12px;">
       <input type="text" id="pesquisa" placeholder="🔍 Pesquisar material ou colaborador..."
              style="max-width:320px;" oninput="filtrar()">
     </div>
@@ -134,6 +102,7 @@
             <th>Qtd</th>
             <th>Unid.</th>
             <th>Colaborador</th>
+            <th>Fornecido por</th>
             <th>Departamento</th>
             <th>Finalidade</th>
             <th>Nº Req.</th>
@@ -142,14 +111,11 @@
           </tr>
         </thead>
         <tbody id="tbody-saidas">
-          <tr><td colspan="10" class="text-center text-muted" style="padding:24px;">
-            A carregar...
-          </td></tr>
+          <tr><td colspan="11" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-
 </div>
 
 <script src="supabase.js"></script>
@@ -161,34 +127,53 @@
   document.getElementById('user-nivel').textContent = AUTH.nivel();
   document.getElementById('f-data').value = hoje();
 
-  let materiais  = [];
-  let saidas     = [];
-  let stockCalc  = {};
+  let materiais = [], colaboradores = [], fornecedores = [];
+  let departamentos = [], finalidades = [], saidas = [], stockCalc = {};
 
   async function init() {
-    // Carregar materiais
-    materiais = await db.query('materiais', 'ativo=eq.true&order=nome.asc');
-    const selMat = document.getElementById('f-material');
-    materiais.forEach(m => {
-      const o = document.createElement('option');
-      o.value = m.id;
-      o.textContent = `${m.referencia} — ${m.nome}`;
-      selMat.appendChild(o);
-    });
+    const [mats, colabs, forns, deptos, fins] = await Promise.all([
+      db.query('materiais', 'ativo=eq.true&order=nome.asc'),
+      db.query('collaborators', 'active=eq.true&order=name.asc'),
+      db.query('fornecedores', 'ativo=eq.true&order=nome.asc'),
+      db.query('departamentos', 'ativo=eq.true&order=nome.asc'),
+      db.query('finalidades', 'ativo=eq.true&order=nome.asc')
+    ]);
 
-    // Carregar colaboradores
-    const colab = await db.query('utilizadores', 'ativo=eq.true&order=nome.asc');
-    const selCol = document.getElementById('f-colaborador');
-    colab.forEach(c => {
-      const o = document.createElement('option');
-      o.value = c.id;
-      o.textContent = c.nome;
-      selCol.appendChild(o);
-    });
+    materiais     = mats;
+    colaboradores = colabs;
+    fornecedores  = forns;
+    departamentos = deptos;
+    finalidades   = fins;
 
-    // Calcular stock actual por material
+    preencherSelect('f-material', materiais,
+      m => `${m.referencia} — ${m.nome}`, m => m.id, '-- Seleccione --');
+    preencherSelect('f-colaborador', colaboradores,
+      c => `${c.code} — ${c.name}`, c => c.id, '-- Seleccione --');
+    preencherSelect('f-fornecedor', fornecedores,
+      f => f.nome, f => f.nome, '-- Seleccione --');
+    preencherSelect('f-departamento', departamentos,
+      d => d.nome, d => d.nome, '-- Seleccione --');
+    preencherSelect('f-finalidade', finalidades,
+      f => f.nome, f => f.nome, '-- Seleccione --');
+
     await calcularStock();
     await carregarSaidas();
+  }
+
+  function preencherSelect(id, lista, labelFn, valueFn, placeholder = null) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    if (placeholder) {
+      const o = document.createElement('option');
+      o.value = ''; o.textContent = placeholder;
+      sel.appendChild(o);
+    }
+    lista.forEach(item => {
+      const o = document.createElement('option');
+      o.value = valueFn(item);
+      o.textContent = labelFn(item);
+      sel.appendChild(o);
+    });
   }
 
   async function calcularStock() {
@@ -206,9 +191,7 @@
     const mat   = materiais.find(x => x.id === matId);
     const stock = stockCalc[matId] || 0;
     const campo = document.getElementById('f-stock');
-
     if (!mat) { campo.value = ''; return; }
-
     campo.value = `${fmtNum(stock, 2)} ${mat.unidade}`;
     campo.style.color = stock <= (mat.stock_minimo || 0)
       ? 'var(--red)' : 'var(--green)';
@@ -217,14 +200,12 @@
   async function carregarSaidas() {
     const todos = await db.query('stock_movimentos',
       'tipo=eq.saida&estado=eq.confirmado&order=criado_em.desc');
-
     saidas = todos.map(m => {
       const mat = materiais.find(x => x.id === m.material_id);
       m._mat  = mat ? `${mat.referencia} — ${mat.nome}` : '—';
       m._unid = mat ? mat.unidade : '';
       return m;
     });
-
     renderSaidas();
   }
 
@@ -237,7 +218,7 @@
       : saidas;
 
     if (lista.length === 0) {
-      tb.innerHTML = `<tr><td colspan="10" class="text-center text-muted"
+      tb.innerHTML = `<tr><td colspan="11" class="text-center text-muted"
         style="padding:24px;">Nenhuma saída registada</td></tr>`;
       return;
     }
@@ -248,16 +229,16 @@
         <td><strong>${m._mat}</strong></td>
         <td style="color:var(--red); font-weight:700;">-${fmtNum(m.quantidade, 2)}</td>
         <td>${m._unid}</td>
+        <td>${m.colaborador_nome || '—'}</td>
+        <td>${m.fornecedor_saida || '—'}</td>
         <td>${m.departamento || '—'}</td>
         <td>${m.finalidade || '—'}</td>
         <td>${m.numero_requisicao || '—'}</td>
         <td>${m.observacoes || '—'}</td>
         <td>
-          <button class="btn btn-ghost btn-sm"
-            onclick="eliminar('${m.id}')">🗑</button>
+          <button class="btn btn-ghost btn-sm" onclick="eliminar('${m.id}')">🗑</button>
         </td>
-      </tr>
-    `).join('');
+      </tr>`).join('');
   }
 
   function filtrar() {
@@ -268,6 +249,7 @@
     const matId  = document.getElementById('f-material').value;
     const qtd    = parseFloat(document.getElementById('f-qtd').value);
     const colId  = document.getElementById('f-colaborador').value;
+    const forn   = document.getElementById('f-fornecedor').value;
     const depto  = document.getElementById('f-departamento').value;
     const final  = document.getElementById('f-finalidade').value;
     const req    = document.getElementById('f-requisicao').value.trim();
@@ -278,25 +260,27 @@
     if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
     if (!colId) { showToast('Selecciona o colaborador!', 'warning'); return; }
 
-    // Verificar stock suficiente
     const stockDisp = stockCalc[matId] || 0;
     if (qtd > stockDisp) {
       showToast(`Stock insuficiente! Disponível: ${fmtNum(stockDisp, 2)}`, 'error');
       return;
     }
 
+    const col = colaboradores.find(c => c.id == colId);
+    const colNome = col ? col.name : '';
+
     const res = await db.insert('stock_movimentos', {
-      tipo: 'saida',
-      estado: 'confirmado',
-      material_id: matId,
-      quantidade: qtd,
+      tipo: 'saida', estado: 'confirmado',
+      material_id: matId, quantidade: qtd,
       data_movimento: data || hoje(),
       data_confirmacao: data || hoje(),
+      colaborador_nome: colNome,
+      fornecedor_saida: forn,
       departamento: depto,
       finalidade: final,
       numero_requisicao: req,
       observacoes: obs,
-      colaborador_id: colId
+      colaborador_id: AUTH.id()
     });
 
     if (res && res.length > 0) {
@@ -310,15 +294,12 @@
   }
 
   function limparForm() {
-    document.getElementById('f-material').value     = '';
-    document.getElementById('f-qtd').value          = '';
-    document.getElementById('f-colaborador').value  = '';
-    document.getElementById('f-departamento').value = '';
-    document.getElementById('f-finalidade').value   = '';
-    document.getElementById('f-requisicao').value   = '';
-    document.getElementById('f-obs').value          = '';
-    document.getElementById('f-data').value         = hoje();
-    document.getElementById('f-stock').value        = '';
+    ['f-material','f-qtd','f-colaborador','f-fornecedor',
+     'f-departamento','f-finalidade','f-requisicao','f-obs'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-data').value = hoje();
+    document.getElementById('f-stock').value = '';
   }
 
   async function eliminar(id) {
@@ -332,6 +313,5 @@
 
   init();
 </script>
-
 </body>
 </html>
