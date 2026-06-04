@@ -8,8 +8,14 @@ const AUTH = {
   },
 
   async login(usuario, senha) {
-    const dados = await db.query('utilizadores',
-      `usuario=eq.${usuario}&senha=eq.${senha}&ativo=eq.true`);
+    const url = `${SUPABASE_URL}/rest/v1/utilizadores?usuario=eq.${encodeURIComponent(usuario)}&senha=eq.${encodeURIComponent(senha)}&ativo=eq.true&select=*`;
+    const r = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    const dados = await r.json();
     if (dados && dados.length > 0) {
       this.sessao = dados[0];
       sessionStorage.setItem('dss_user', JSON.stringify(dados[0]));
@@ -37,9 +43,9 @@ const AUTH = {
     return true;
   },
 
-  isAdmin() { return this.sessao?.nivel === 'admin'; },
+  isAdmin()  { return this.sessao?.nivel === 'admin'; },
   isGestor() { return ['admin','gestor'].includes(this.sessao?.nivel); },
-  nome() { return this.sessao?.nome || ''; },
-  nivel() { return this.sessao?.nivel || ''; },
-  id() { return this.sessao?.id || null; }
+  nome()     { return this.sessao?.nome || ''; },
+  nivel()    { return this.sessao?.nivel || ''; },
+  id()       { return this.sessao?.id || null; }
 };
