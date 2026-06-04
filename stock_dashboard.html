@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSS Stock — Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a href="stock_dashboard.html" class="navbar-brand">
+    <div class="logo-box">DS</div>
+    <div>
+      <div class="brand-name">DANMO SS</div>
+      <div class="brand-sub">Gestão de Stock</div>
+    </div>
+  </a>
+  <div class="navbar-menu">
+    <a href="stock_dashboard.html" class="active">📊 Dashboard</a>
+    <a href="stock_entradas.html">📥 Entradas</a>
+    <a href="stock_saidas.html">📤 Saídas</a>
+    <a href="stock_materiais.html">📦 Materiais</a>
+  </div>
+  <div class="navbar-user">
+    <div>
+      <strong id="user-nome"></strong>
+      <div id="user-nivel" style="font-size:11px; text-transform:uppercase;"></div>
+    </div>
+    <button class="btn-sair" onclick="AUTH.logout()">Sair</button>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div class="page-title">📊 Dashboard de Stock</div>
+  <div class="page-sub" id="data-hoje"></div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total de Materiais</div>
+      <div class="kpi-value" id="kpi-total-mat">—</div>
+      <div class="kpi-sub">materiais activos</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Entradas este Mês</div>
+      <div class="kpi-value" id="kpi-entradas-mes">—</div>
+      <div class="kpi-sub">movimentos confirmados</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Saídas este Mês</div>
+      <div class="kpi-value" id="kpi-saidas-mes">—</div>
+      <div class="kpi-sub">levantamentos registados</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Alertas de Stock</div>
+      <div class="kpi-value" id="kpi-alertas">—</div>
+      <div class="kpi-sub">materiais em stock baixo ou esgotado</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Pedidos Pendentes</div>
+      <div class="kpi-value" id="kpi-pendentes">—</div>
+      <div class="kpi-sub">aguardam confirmação</div>
+    </div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div id="card-alertas" class="card" style="display:none;">
+    <div class="card-title">⚠️ Materiais em Alerta</div>
+    <div id="lista-alertas"></div>
+  </div>
+
+  <!-- PENDENTES -->
+  <div id="card-pendentes" class="card" style="display:none;">
+    <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+      <span>⏳ Pedidos Pendentes de Confirmação</span>
+      <a href="stock_entradas.html" class="btn btn-ghost btn-sm">Ver todos →</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Material</th>
+            <th>Qtd</th>
+            <th>Fornecedor</th>
+            <th>P/O</th>
+            <th>Acção</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-pendentes"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DOIS PAINÉIS LADO A LADO -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+    <!-- ÚLTIMAS ENTRADAS -->
+    <div class="card">
+      <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+        <span>📥 Últimas Entradas</span>
+        <a href="stock_entradas.html" class="btn btn-ghost btn-sm">Ver todas →</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Material</th>
+              <th>Qtd</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-entradas"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ÚLTIMAS SAÍDAS -->
+    <div class="card">
+      <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+        <span>📤 Últimas Saídas</span>
+        <a href="stock_saidas.html" class="btn btn-ghost btn-sm">Ver todas →</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Material</th>
+              <th>Qtd</th>
+              <th>Departamento</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-saidas"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STOCK ACTUAL -->
+  <div class="card">
+    <div class="card-title">📦 Stock Actual — Todos os Materiais</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Referência</th>
+            <th>Material</th>
+            <th>Categoria</th>
+            <th>Unid.</th>
+            <th>Stock Mín.</th>
+            <th>Stock Actual</th>
+            <th>Estado</th>
+            <th>Localização</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-stock"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+<script src="utils.js"></script>
+<script>
+  AUTH.exigir();
+  document.getElementById('user-nome').textContent  = AUTH.nome();
+  document.getElementById('user-nivel').textContent = AUTH.nivel();
+
+  const agora = new Date();
+  document.getElementById('data-hoje').textContent =
+    agora.toLocaleDateString('pt-MZ', {
+      weekday:'long', day:'2-digit', month:'long', year:'numeric'
+    });
+
+  async function init() {
+    const [materiais, movimentos] = await Promise.all([
+      db.query('materiais', 'ativo=eq.true&order=referencia.asc'),
+      db.query('stock_movimentos', 'order=criado_em.desc')
+    ]);
+
+    // Calcular stock
+    const stockCalc = {};
+    movimentos.forEach(m => {
+      if (!stockCalc[m.material_id]) stockCalc[m.material_id] = 0;
+      if (m.estado === 'confirmado') {
+        if (m.tipo === 'entrada') stockCalc[m.material_id] += Number(m.quantidade);
+        if (m.tipo === 'saida')   stockCalc[m.material_id] -= Number(m.quantidade);
+      }
+    });
+
+    // Helper nome material
+    const nomeMat = id => {
+      const m = materiais.find(x => x.id === id);
+      return m ? `${m.referencia} — ${m.nome}` : '—';
+    };
+    const unidMat = id => {
+      const m = materiais.find(x => x.id === id);
+      return m ? m.unidade : '';
+    };
+
+    // Mês actual
+    const mesAtual = agora.getMonth();
+    const anoAtual = agora.getFullYear();
+    const destesMes = m => {
+      const d = new Date(m.criado_em);
+      return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+    };
+
+    const pendentes   = movimentos.filter(m => m.estado === 'pendente');
+    const confirmedEntradas = movimentos.filter(m =>
+      m.tipo === 'entrada' && m.estado === 'confirmado');
+    const confirmedSaidas = movimentos.filter(m =>
+      m.tipo === 'saida' && m.estado === 'confirmado');
+
+    const entradasMes = confirmedEntradas.filter(destesMes).length;
+    const saidasMes   = confirmedSaidas.filter(destesMes).length;
+
+    const alertas = materiais.filter(m => {
+      const stock = stockCalc[m.id] || 0;
+      return stock <= (m.stock_minimo || 0);
+    });
+
+    // KPIs
+    document.getElementById('kpi-total-mat').textContent  = materiais.length;
+    document.getElementById('kpi-entradas-mes').textContent = entradasMes;
+    document.getElementById('kpi-saidas-mes').textContent   = saidasMes;
+    document.getElementById('kpi-alertas').textContent      = alertas.length;
+    document.getElementById('kpi-pendentes').textContent    = pendentes.length;
+
+    // Alertas
+    const cardAlertas = document.getElementById('card-alertas');
+    if (alertas.length > 0) {
+      cardAlertas.style.display = 'block';
+      document.getElementById('lista-alertas').innerHTML = alertas.map(m => {
+        const stock = stockCalc[m.id] || 0;
+        const cls   = stock <= 0 ? 'alert-danger' : 'alert-warning';
+        const icon  = stock <= 0 ? '🔴' : '⚠️';
+        return `
+          <div class="alert ${cls}" style="margin-bottom:8px;">
+            ${icon} <strong>${m.referencia} — ${m.nome}</strong>
+            &nbsp;|&nbsp; Stock actual:
+            <strong>${fmtNum(stock, 2)} ${m.unidade}</strong>
+            &nbsp;|&nbsp; Mínimo: ${fmtNum(m.stock_minimo, 2)} ${m.unidade}
+            &nbsp;
+            <a href="stock_entradas.html"
+               style="color:inherit; font-weight:700; margin-left:8px;">
+              + Registar Entrada →
+            </a>
+          </div>`;
+      }).join('');
+    }
+
+    // Pendentes
+    const cardPend = document.getElementById('card-pendentes');
+    if (pendentes.length > 0) {
+      cardPend.style.display = 'block';
+      document.getElementById('tbody-pendentes').innerHTML =
+        pendentes.slice(0, 5).map(m => `
+          <tr>
+            <td>${fmtData(m.data_movimento)}</td>
+            <td><strong>${nomeMat(m.material_id)}</strong></td>
+            <td>${fmtNum(m.quantidade, 2)} ${unidMat(m.material_id)}</td>
+            <td>${m.fornecedor || '—'}</td>
+            <td>${m.numero_po || '—'}</td>
+            <td>
+              <a href="stock_entradas.html" class="btn btn-success btn-sm">
+                ✅ Confirmar
+              </a>
+            </td>
+          </tr>`).join('');
+    }
+
+    // Últimas entradas
+    document.getElementById('tbody-entradas').innerHTML =
+      confirmedEntradas.slice(0, 6).map(m => `
+        <tr>
+          <td>${fmtData(m.data_confirmacao || m.data_movimento)}</td>
+          <td>${nomeMat(m.material_id)}</td>
+          <td style="color:var(--green); font-weight:700;">
+            +${fmtNum(m.quantidade, 2)} ${unidMat(m.material_id)}
+          </td>
+        </tr>`).join('') ||
+      `<tr><td colspan="3" class="text-center text-muted"
+        style="padding:16px;">Sem entradas</td></tr>`;
+
+    // Últimas saídas
+    document.getElementById('tbody-saidas').innerHTML =
+      confirmedSaidas.slice(0, 6).map(m => `
+        <tr>
+          <td>${fmtData(m.data_movimento)}</td>
+          <td>${nomeMat(m.material_id)}</td>
+          <td style="color:var(--red); font-weight:700;">
+            -${fmtNum(m.quantidade, 2)} ${unidMat(m.material_id)}
+          </td>
+          <td>${m.departamento || '—'}</td>
+        </tr>`).join('') ||
+      `<tr><td colspan="4" class="text-center text-muted"
+        style="padding:16px;">Sem saídas</td></tr>`;
+
+    // Stock actual completo
+    document.getElementById('tbody-stock').innerHTML =
+      materiais.map(m => {
+        const stock  = stockCalc[m.id] || 0;
+        const minimo = m.stock_minimo || 0;
+        let badge, cor;
+        if (stock <= 0) {
+          badge = '<span class="badge badge-red">Esgotado</span>';
+          cor   = 'var(--red)';
+        } else if (stock <= minimo) {
+          badge = '<span class="badge badge-amber">Stock Baixo</span>';
+          cor   = 'var(--amber)';
+        } else {
+          badge = '<span class="badge badge-green">OK</span>';
+          cor   = 'var(--green)';
+        }
+        return `
+          <tr>
+            <td><code style="color:var(--amber);">${m.referencia}</code></td>
+            <td><strong>${m.nome}</strong></td>
+            <td>${m.categoria || '—'}</td>
+            <td>${m.unidade}</td>
+            <td>${fmtNum(minimo, 2)}</td>
+            <td style="color:${cor}; font-weight:700;">${fmtNum(stock, 2)}</td>
+            <td>${badge}</td>
+            <td>${m.localizacao || '—'}</td>
+          </tr>`;
+      }).join('');
+  }
+
+  init();
+</script>
+
+</body>
+</html>
