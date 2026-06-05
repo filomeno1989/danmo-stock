@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSS Stock — Configurações</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="stock_dashboard.html" class="navbar-brand">
+    <div class="logo-box">DS</div>
+    <div>
+      <div class="brand-name">DANMO SS</div>
+      <div class="brand-sub">Gestão de Stock</div>
+    </div>
+  </a>
+  <div class="navbar-menu">
+    <a href="stock_dashboard.html">📊 Dashboard</a>
+    <a href="stock_entradas.html">📥 Entradas</a>
+    <a href="stock_saidas.html">📤 Saídas</a>
+    <a href="stock_materiais.html">📦 Materiais</a>
+    <a href="stock_configuracoes.html" class="active">⚙️ Configurações</a>
+  </div>
+  <div class="navbar-user">
+    <div>
+      <strong id="user-nome"></strong>
+      <div id="user-nivel" style="font-size:11px; text-transform:uppercase;"></div>
+    </div>
+    <button class="btn-sair" onclick="AUTH.logout()">Sair</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">⚙️ Configurações</div>
+  <div class="page-sub">Gerir fornecedores, departamentos, finalidades e categorias</div>
+
+  <!-- GRID DE PAINÉIS -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+    <!-- FORNECEDORES -->
+    <div class="card">
+      <div class="card-title">🏪 Fornecedores</div>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="novo-fornecedor" placeholder="Nome do fornecedor"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('fornecedores','nome',
+               'novo-fornecedor','lista-fornecedores')">
+        <button class="btn btn-primary btn-sm"
+          onclick="addItem('fornecedores','nome','novo-fornecedor','lista-fornecedores')">
+          ➕ Add
+        </button>
+      </div>
+      <div id="lista-fornecedores" class="config-lista"></div>
+    </div>
+
+    <!-- DEPARTAMENTOS -->
+    <div class="card">
+      <div class="card-title">🏢 Departamentos</div>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="novo-departamento" placeholder="Nome do departamento"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('departamentos','nome',
+               'novo-departamento','lista-departamentos')">
+        <button class="btn btn-primary btn-sm"
+          onclick="addItem('departamentos','nome','novo-departamento','lista-departamentos')">
+          ➕ Add
+        </button>
+      </div>
+      <div id="lista-departamentos" class="config-lista"></div>
+    </div>
+
+    <!-- FINALIDADES -->
+    <div class="card">
+      <div class="card-title">🎯 Finalidades</div>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="novo-finalidade" placeholder="Nome da finalidade"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('finalidades','nome',
+               'novo-finalidade','lista-finalidades')">
+        <button class="btn btn-primary btn-sm"
+          onclick="addItem('finalidades','nome','novo-finalidade','lista-finalidades')">
+          ➕ Add
+        </button>
+      </div>
+      <div id="lista-finalidades" class="config-lista"></div>
+    </div>
+
+    <!-- CATEGORIAS DE MATERIAL -->
+    <div class="card">
+      <div class="card-title">🏷️ Categorias de Material</div>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="novo-categoria" placeholder="Nome da categoria"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('categorias_material','nome',
+               'novo-categoria','lista-categorias')">
+        <button class="btn btn-primary btn-sm"
+          onclick="addItem('categorias_material','nome','novo-categoria','lista-categorias')">
+          ➕ Add
+        </button>
+      </div>
+      <div id="lista-categorias" class="config-lista"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div id="modal-edit" style="display:none; position:fixed; inset:0;
+     background:rgba(0,0,0,0.6); z-index:500; align-items:center; justify-content:center;">
+  <div style="background:var(--navy2); border:1px solid var(--border);
+              border-radius:12px; padding:28px; width:100%; max-width:380px;">
+    <div style="font-size:16px; font-weight:700; color:var(--amber); margin-bottom:16px;">
+      ✏️ Editar
+    </div>
+    <input type="text" id="modal-edit-valor" style="width:100%; margin-bottom:20px;">
+    <input type="hidden" id="modal-edit-id">
+    <input type="hidden" id="modal-edit-tabela">
+    <input type="hidden" id="modal-edit-campo">
+    <input type="hidden" id="modal-edit-lista">
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="fecharModalEdit()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicao()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .config-lista { display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto; }
+  .config-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; background:var(--navy);
+    border:1px solid var(--border); border-radius:6px;
+    font-size:14px;
+  }
+  .config-item span { color:var(--text); }
+  .config-item .acoes { display:flex; gap:6px; }
+</style>
+
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+<script src="utils.js"></script>
+<script>
+  AUTH.exigir(['admin', 'gestor']);
+  document.getElementById('user-nome').textContent  = AUTH.nome();
+  document.getElementById('user-nivel').textContent = AUTH.nivel();
+
+  // Config dos painéis
+  const paineis = [
+    { tabela: 'fornecedores',      campo: 'nome', listaId: 'lista-fornecedores' },
+    { tabela: 'departamentos',     campo: 'nome', listaId: 'lista-departamentos' },
+    { tabela: 'finalidades',       campo: 'nome', listaId: 'lista-finalidades' },
+    { tabela: 'categorias_material', campo: 'nome', listaId: 'lista-categorias' }
+  ];
+
+  async function init() {
+    for (const p of paineis) {
+      await carregarLista(p.tabela, p.campo, p.listaId);
+    }
+  }
+
+  async function carregarLista(tabela, campo, listaId) {
+    const dados = await db.query(tabela, 'ativo=eq.true&order=nome.asc');
+    const div   = document.getElementById(listaId);
+
+    if (dados.length === 0) {
+      div.innerHTML = `<div class="text-muted" style="font-size:13px; padding:8px;">
+        Nenhum item registado.</div>`;
+      return;
+    }
+
+    div.innerHTML = dados.map(item => `
+      <div class="config-item">
+        <span>${item[campo]}</span>
+        <div class="acoes">
+          <button class="btn btn-ghost btn-sm"
+            onclick="abrirModalEdit('${item.id}','${tabela}','${campo}',
+            '${listaId}','${item[campo]}')">✏️</button>
+          <button class="btn btn-ghost btn-sm"
+            onclick="removerItem('${item.id}','${tabela}','${campo}','${listaId}')">🗑</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function addItem(tabela, campo, inputId, listaId) {
+    const input = document.getElementById(inputId);
+    const valor = input.value.trim();
+    if (!valor) { showToast('Escreve um nome primeiro!', 'warning'); return; }
+
+    const dados = { [campo]: valor, ativo: true };
+    const res   = await db.insert(tabela, dados);
+
+    if (res && res.length > 0) {
+      showToast('Adicionado! ✅', 'success');
+      input.value = '';
+      await carregarLista(tabela, campo, listaId);
+    } else {
+      showToast('Erro ao adicionar.', 'error');
+    }
+  }
+
+  async function removerItem(id, tabela, campo, listaId) {
+    const ok = await confirmar('Remover este item?');
+    if (!ok) return;
+    await db.update(tabela, id, { ativo: false });
+    showToast('Removido.', 'info');
+    await carregarLista(tabela, campo, listaId);
+  }
+
+  function abrirModalEdit(id, tabela, campo, listaId, valorActual) {
+    document.getElementById('modal-edit-id').value     = id;
+    document.getElementById('modal-edit-tabela').value = tabela;
+    document.getElementById('modal-edit-campo').value  = campo;
+    document.getElementById('modal-edit-lista').value  = listaId;
+    document.getElementById('modal-edit-valor').value  = valorActual;
+    document.getElementById('modal-edit').style.display = 'flex';
+  }
+
+  function fecharModalEdit() {
+    document.getElementById('modal-edit').style.display = 'none';
+  }
+
+  async function guardarEdicao() {
+    const id     = document.getElementById('modal-edit-id').value;
+    const tabela = document.getElementById('modal-edit-tabela').value;
+    const campo  = document.getElementById('modal-edit-campo').value;
+    const listaId = document.getElementById('modal-edit-lista').value;
+    const valor  = document.getElementById('modal-edit-valor').value.trim();
+
+    if (!valor) { showToast('O nome não pode estar vazio!', 'warning'); return; }
+
+    const res = await db.update(tabela, id, { [campo]: valor });
+    if (res && res.length > 0) {
+      showToast('Actualizado! ✅', 'success');
+      fecharModalEdit();
+      await carregarLista(tabela, campo, listaId);
+    } else {
+      showToast('Erro ao actualizar.', 'error');
+    }
+  }
+
+  document.getElementById('modal-edit').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalEdit();
+  });
+
+  init();
+</script>
+</body>
+</html>
