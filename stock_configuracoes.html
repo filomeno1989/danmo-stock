@@ -34,22 +34,18 @@
 
 <div class="main">
   <div class="page-title">⚙️ Configurações</div>
-  <div class="page-sub">Gerir fornecedores, departamentos, finalidades e categorias</div>
+  <div class="page-sub">Gerir fornecedores, departamentos, finalidades, categorias e responsáveis</div>
 
-  <!-- GRID DE PAINÉIS -->
   <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
 
     <!-- FORNECEDORES -->
     <div class="card">
       <div class="card-title">🏪 Fornecedores</div>
       <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <input type="text" id="novo-fornecedor" placeholder="Nome do fornecedor"
-               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('fornecedores','nome',
-               'novo-fornecedor','lista-fornecedores')">
+        <input type="text" id="novo-fornecedores" placeholder="Nome do fornecedor"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('fornecedores','novo-fornecedores','lista-fornecedores')">
         <button class="btn btn-primary btn-sm"
-          onclick="addItem('fornecedores','nome','novo-fornecedor','lista-fornecedores')">
-          ➕ Add
-        </button>
+          onclick="addItem('fornecedores','novo-fornecedores','lista-fornecedores')">➕ Add</button>
       </div>
       <div id="lista-fornecedores" class="config-lista"></div>
     </div>
@@ -58,13 +54,10 @@
     <div class="card">
       <div class="card-title">🏢 Departamentos</div>
       <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <input type="text" id="novo-departamento" placeholder="Nome do departamento"
-               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('departamentos','nome',
-               'novo-departamento','lista-departamentos')">
+        <input type="text" id="novo-departamentos" placeholder="Nome do departamento"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('departamentos','novo-departamentos','lista-departamentos')">
         <button class="btn btn-primary btn-sm"
-          onclick="addItem('departamentos','nome','novo-departamento','lista-departamentos')">
-          ➕ Add
-        </button>
+          onclick="addItem('departamentos','novo-departamentos','lista-departamentos')">➕ Add</button>
       </div>
       <div id="lista-departamentos" class="config-lista"></div>
     </div>
@@ -73,30 +66,48 @@
     <div class="card">
       <div class="card-title">🎯 Finalidades</div>
       <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <input type="text" id="novo-finalidade" placeholder="Nome da finalidade"
-               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('finalidades','nome',
-               'novo-finalidade','lista-finalidades')">
+        <input type="text" id="novo-finalidades" placeholder="Nome da finalidade"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('finalidades','novo-finalidades','lista-finalidades')">
         <button class="btn btn-primary btn-sm"
-          onclick="addItem('finalidades','nome','novo-finalidade','lista-finalidades')">
-          ➕ Add
-        </button>
+          onclick="addItem('finalidades','novo-finalidades','lista-finalidades')">➕ Add</button>
       </div>
       <div id="lista-finalidades" class="config-lista"></div>
     </div>
 
-    <!-- CATEGORIAS DE MATERIAL -->
+    <!-- CATEGORIAS -->
     <div class="card">
       <div class="card-title">🏷️ Categorias de Material</div>
       <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <input type="text" id="novo-categoria" placeholder="Nome da categoria"
-               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('categorias_material','nome',
-               'novo-categoria','lista-categorias')">
+        <input type="text" id="novo-categorias_material" placeholder="Nome da categoria"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addItem('categorias_material','novo-categorias_material','lista-categorias_material')">
         <button class="btn btn-primary btn-sm"
-          onclick="addItem('categorias_material','nome','novo-categoria','lista-categorias')">
-          ➕ Add
-        </button>
+          onclick="addItem('categorias_material','novo-categorias_material','lista-categorias_material')">➕ Add</button>
       </div>
-      <div id="lista-categorias" class="config-lista"></div>
+      <div id="lista-categorias_material" class="config-lista"></div>
+    </div>
+
+    <!-- COMPRADORES -->
+    <div class="card">
+      <div class="card-title">🛒 Compradores / Quem Vai às Compras</div>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="novo-comprador" placeholder="Nome completo"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addResponsavel('comprador')">
+        <button class="btn btn-primary btn-sm"
+          onclick="addResponsavel('comprador')">➕ Add</button>
+      </div>
+      <div id="lista-comprador" class="config-lista"></div>
+    </div>
+
+    <!-- RECEPTORES -->
+    <div class="card">
+      <div class="card-title">📬 Receptores / Quem Recebe no Armazém</div>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="novo-receptor" placeholder="Nome completo"
+               style="flex:1;" onkeydown="if(event.key==='Enter') addResponsavel('receptor')">
+        <button class="btn btn-primary btn-sm"
+          onclick="addResponsavel('receptor')">➕ Add</button>
+      </div>
+      <div id="lista-receptor" class="config-lista"></div>
     </div>
 
   </div>
@@ -113,8 +124,8 @@
     <input type="text" id="modal-edit-valor" style="width:100%; margin-bottom:20px;">
     <input type="hidden" id="modal-edit-id">
     <input type="hidden" id="modal-edit-tabela">
-    <input type="hidden" id="modal-edit-campo">
     <input type="hidden" id="modal-edit-lista">
+    <input type="hidden" id="modal-edit-tipo">
     <div style="display:flex; gap:10px; justify-content:flex-end;">
       <button class="btn btn-ghost" onclick="fecharModalEdit()">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarEdicao()">💾 Guardar</button>
@@ -123,12 +134,11 @@
 </div>
 
 <style>
-  .config-lista { display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto; }
+  .config-lista { display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto; }
   .config-item {
     display:flex; align-items:center; justify-content:space-between;
     padding:8px 12px; background:var(--navy);
-    border:1px solid var(--border); border-radius:6px;
-    font-size:14px;
+    border:1px solid var(--border); border-radius:6px; font-size:14px;
   }
   .config-item span { color:var(--text); }
   .config-item .acoes { display:flex; gap:6px; }
@@ -138,77 +148,111 @@
 <script src="auth.js"></script>
 <script src="utils.js"></script>
 <script>
-  AUTH.exigir(['admin', 'gestor']);
+  AUTH.exigir(['admin','gestor']);
   document.getElementById('user-nome').textContent  = AUTH.nome();
   document.getElementById('user-nivel').textContent = AUTH.nivel();
 
-  // Config dos painéis
-  const paineis = [
-    { tabela: 'fornecedores',      campo: 'nome', listaId: 'lista-fornecedores' },
-    { tabela: 'departamentos',     campo: 'nome', listaId: 'lista-departamentos' },
-    { tabela: 'finalidades',       campo: 'nome', listaId: 'lista-finalidades' },
-    { tabela: 'categorias_material', campo: 'nome', listaId: 'lista-categorias' }
+  const tabelas = [
+    { tabela: 'fornecedores',       listaId: 'lista-fornecedores' },
+    { tabela: 'departamentos',      listaId: 'lista-departamentos' },
+    { tabela: 'finalidades',        listaId: 'lista-finalidades' },
+    { tabela: 'categorias_material',listaId: 'lista-categorias_material' }
   ];
 
   async function init() {
-    for (const p of paineis) {
-      await carregarLista(p.tabela, p.campo, p.listaId);
+    for (const t of tabelas) {
+      await carregarLista(t.tabela, t.listaId);
     }
+    await carregarResponsaveis('comprador', 'lista-comprador');
+    await carregarResponsaveis('receptor',  'lista-receptor');
   }
 
-  async function carregarLista(tabela, campo, listaId) {
+  async function carregarLista(tabela, listaId) {
     const dados = await db.query(tabela, 'ativo=eq.true&order=nome.asc');
     const div   = document.getElementById(listaId);
-
     if (dados.length === 0) {
-      div.innerHTML = `<div class="text-muted" style="font-size:13px; padding:8px;">
-        Nenhum item registado.</div>`;
+      div.innerHTML = `<div class="text-muted" style="font-size:13px; padding:8px;">Nenhum item registado.</div>`;
       return;
     }
-
     div.innerHTML = dados.map(item => `
       <div class="config-item">
-        <span>${item[campo]}</span>
+        <span>${item.nome}</span>
         <div class="acoes">
           <button class="btn btn-ghost btn-sm"
-            onclick="abrirModalEdit('${item.id}','${tabela}','${campo}',
-            '${listaId}','${item[campo]}')">✏️</button>
+            onclick="abrirModalEdit('${item.id}','${tabela}','${listaId}','','${item.nome}')">✏️</button>
           <button class="btn btn-ghost btn-sm"
-            onclick="removerItem('${item.id}','${tabela}','${campo}','${listaId}')">🗑</button>
+            onclick="removerItem('${item.id}','${tabela}','${listaId}','')">🗑</button>
         </div>
       </div>`).join('');
   }
 
-  async function addItem(tabela, campo, inputId, listaId) {
+  async function carregarResponsaveis(funcao, listaId) {
+    const dados = await db.query('responsaveis',
+      `ativo=eq.true&funcao=in.(${funcao},ambos)&order=nome.asc`);
+    const div = document.getElementById(listaId);
+    if (dados.length === 0) {
+      div.innerHTML = `<div class="text-muted" style="font-size:13px; padding:8px;">Nenhum item registado.</div>`;
+      return;
+    }
+    div.innerHTML = dados.map(item => `
+      <div class="config-item">
+        <span>${item.nome}</span>
+        <div class="acoes">
+          <button class="btn btn-ghost btn-sm"
+            onclick="abrirModalEdit('${item.id}','responsaveis','${listaId}','${funcao}','${item.nome}')">✏️</button>
+          <button class="btn btn-ghost btn-sm"
+            onclick="removerItem('${item.id}','responsaveis','${listaId}','${funcao}')">🗑</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function addItem(tabela, inputId, listaId) {
     const input = document.getElementById(inputId);
     const valor = input.value.trim();
     if (!valor) { showToast('Escreve um nome primeiro!', 'warning'); return; }
-
-    const dados = { [campo]: valor, ativo: true };
-    const res   = await db.insert(tabela, dados);
-
+    const res = await db.insert(tabela, { nome: valor, ativo: true });
     if (res && res.length > 0) {
       showToast('Adicionado! ✅', 'success');
       input.value = '';
-      await carregarLista(tabela, campo, listaId);
+      await carregarLista(tabela, listaId);
     } else {
       showToast('Erro ao adicionar.', 'error');
     }
   }
 
-  async function removerItem(id, tabela, campo, listaId) {
+  async function addResponsavel(funcao) {
+    const inputId = `novo-${funcao}`;
+    const listaId = `lista-${funcao}`;
+    const input   = document.getElementById(inputId);
+    const valor   = input.value.trim();
+    if (!valor) { showToast('Escreve um nome primeiro!', 'warning'); return; }
+    const res = await db.insert('responsaveis', { nome: valor, funcao, ativo: true });
+    if (res && res.length > 0) {
+      showToast('Adicionado! ✅', 'success');
+      input.value = '';
+      await carregarResponsaveis(funcao, listaId);
+    } else {
+      showToast('Erro ao adicionar.', 'error');
+    }
+  }
+
+  async function removerItem(id, tabela, listaId, funcao) {
     const ok = await confirmar('Remover este item?');
     if (!ok) return;
     await db.update(tabela, id, { ativo: false });
     showToast('Removido.', 'info');
-    await carregarLista(tabela, campo, listaId);
+    if (tabela === 'responsaveis') {
+      await carregarResponsaveis(funcao, listaId);
+    } else {
+      await carregarLista(tabela, listaId);
+    }
   }
 
-  function abrirModalEdit(id, tabela, campo, listaId, valorActual) {
+  function abrirModalEdit(id, tabela, listaId, tipo, valorActual) {
     document.getElementById('modal-edit-id').value     = id;
     document.getElementById('modal-edit-tabela').value = tabela;
-    document.getElementById('modal-edit-campo').value  = campo;
     document.getElementById('modal-edit-lista').value  = listaId;
+    document.getElementById('modal-edit-tipo').value   = tipo;
     document.getElementById('modal-edit-valor').value  = valorActual;
     document.getElementById('modal-edit').style.display = 'flex';
   }
@@ -220,17 +264,21 @@
   async function guardarEdicao() {
     const id     = document.getElementById('modal-edit-id').value;
     const tabela = document.getElementById('modal-edit-tabela').value;
-    const campo  = document.getElementById('modal-edit-campo').value;
-    const listaId = document.getElementById('modal-edit-lista').value;
+    const listaId= document.getElementById('modal-edit-lista').value;
+    const tipo   = document.getElementById('modal-edit-tipo').value;
     const valor  = document.getElementById('modal-edit-valor').value.trim();
 
     if (!valor) { showToast('O nome não pode estar vazio!', 'warning'); return; }
 
-    const res = await db.update(tabela, id, { [campo]: valor });
+    const res = await db.update(tabela, id, { nome: valor });
     if (res && res.length > 0) {
       showToast('Actualizado! ✅', 'success');
       fecharModalEdit();
-      await carregarLista(tabela, campo, listaId);
+      if (tabela === 'responsaveis') {
+        await carregarResponsaveis(tipo, listaId);
+      } else {
+        await carregarLista(tabela, listaId);
+      }
     } else {
       showToast('Erro ao actualizar.', 'error');
     }
