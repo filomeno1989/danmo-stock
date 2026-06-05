@@ -122,12 +122,13 @@
             <th>Fornecedor</th>
             <th>Pro-forma/Cot.</th>
             <th>Departamento</th>
+            <th>Comprador</th>
             <th>Recebido por</th>
             <th>Obs.</th>
           </tr>
         </thead>
         <tbody id="tbody-confirmadas">
-          <tr><td colspan="9" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
+          <tr><td colspan="10" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
@@ -138,30 +139,32 @@
 <div id="modal-confirmar" style="display:none; position:fixed; inset:0;
      background:rgba(0,0,0,0.6); z-index:500; align-items:center; justify-content:center;">
   <div style="background:var(--navy2); border:1px solid var(--border);
-              border-radius:12px; padding:28px; width:100%; max-width:420px;">
+              border-radius:12px; padding:28px; width:100%; max-width:440px;">
     <div style="font-size:17px; font-weight:700; color:var(--amber); margin-bottom:20px;">
       ✅ Confirmar Entrada no Armazém
     </div>
     <p style="color:var(--text2); font-size:14px; margin-bottom:16px;">
       Material: <strong id="modal-material" style="color:var(--text);"></strong>
     </p>
-    <div class="form-group" style="margin-bottom:16px;">
-      <label>Quantidade Recebida *</label>
-      <input type="number" id="modal-qtd" min="0.01" step="0.01">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Quantidade Recebida *</label>
+        <input type="number" id="modal-qtd" min="0.01" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Recebido por *</label>
+        <select id="modal-recebedor"></select>
+      </div>
+      <div class="form-group">
+        <label>Data de Entrada</label>
+        <input type="date" id="modal-data">
+      </div>
+      <div class="form-group">
+        <label>Observações</label>
+        <input type="text" id="modal-obs" placeholder="Ex: Falta 1 unidade">
+      </div>
     </div>
-    <div class="form-group" style="margin-bottom:16px;">
-      <label>Quem Recebeu</label>
-      <select id="modal-recebedor"></select>
-    </div>
-    <div class="form-group" style="margin-bottom:16px;">
-      <label>Data de Entrada</label>
-      <input type="date" id="modal-data">
-    </div>
-    <div class="form-group" style="margin-bottom:20px;">
-      <label>Observações</label>
-      <input type="text" id="modal-obs" placeholder="Ex: Falta 1 unidade">
-    </div>
-    <div style="display:flex; gap:10px; justify-content:flex-end;">
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
       <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
       <button class="btn btn-success" onclick="confirmarEntrada()">✅ Confirmar</button>
     </div>
@@ -178,27 +181,35 @@
   document.getElementById('f-data').value = hoje();
 
   let materiais = [], fornecedores = [], departamentos = [];
-  let colaboradores = [], pendentes = [], confirmadas = [];
+  let compradores = [], receptores = [];
+  let pendentes = [], confirmadas = [];
   let modalId = null;
 
   async function init() {
-    const [mats, forns, deptos, colabs] = await Promise.all([
+    const [mats, forns, deptos, comps, recs] = await Promise.all([
       db.query('materiais', 'ativo=eq.true&order=nome.asc'),
       db.query('fornecedores', 'ativo=eq.true&order=nome.asc'),
       db.query('departamentos', 'ativo=eq.true&order=nome.asc'),
-      db.query('collaborators', 'active=eq.true&order=name.asc')
+      db.query('responsaveis', 'ativo=eq.true&funcao=in.(comprador,ambos)&order=nome.asc'),
+      db.query('responsaveis', 'ativo=eq.true&funcao=in.(receptor,ambos)&order=nome.asc')
     ]);
 
-    materiais     = mats;
-    fornecedores  = forns;
+    materiais    = mats;
+    fornecedores = forns;
     departamentos = deptos;
-    colaboradores = colabs;
+    compradores  = comps;
+    receptores   = recs;
 
-    preencherSelect('f-material', materiais, m => `${m.referencia} — ${m.nome}`, m => m.id);
-    preencherSelect('f-fornecedor', fornecedores, f => f.nome, f => f.nome, '-- Seleccione --');
-    preencherSelect('f-departamento', departamentos, d => d.nome, d => d.nome, '-- Seleccione --');
-    preencherSelect('f-comprador', colaboradores, c => `${c.code} — ${c.name}`, c => c.id, '-- Seleccione --');
-    preencherSelect('modal-recebedor', colaboradores, c => `${c.code} — ${c.name}`, c => c.id, '-- Seleccione --');
+    preencherSelect('f-material', materiais,
+      m => `${m.referencia} — ${m.nome}`, m => m.id, '-- Seleccione --');
+    preencherSelect('f-fornecedor', fornecedores,
+      f => f.nome, f => f.nome, '-- Seleccione --');
+    preencherSelect('f-departamento', departamentos,
+      d => d.nome, d => d.nome, '-- Seleccione --');
+    preencherSelect('f-comprador', compradores,
+      c => c.nome, c => c.nome, '-- Seleccione --');
+    preencherSelect('modal-recebedor', receptores,
+      r => r.nome, r => r.nome, '-- Seleccione --');
 
     await carregarMovimentos();
   }
@@ -220,8 +231,9 @@
   }
 
   async function carregarMovimentos() {
-    const todos = await db.query('stock_movimentos', 'tipo=eq.entrada&order=criado_em.desc');
-    pendentes  = [];
+    const todos = await db.query('stock_movimentos',
+      'tipo=eq.entrada&order=criado_em.desc');
+    pendentes   = [];
     confirmadas = [];
     todos.forEach(m => {
       const mat = materiais.find(x => x.id === m.material_id);
@@ -235,10 +247,11 @@
   }
 
   function renderPendentes() {
-    const tb = document.getElementById('tbody-pendentes');
+    const tb     = document.getElementById('tbody-pendentes');
     const alerta = document.getElementById('alerta-pendentes');
     if (pendentes.length === 0) {
-      tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:24px;">Nenhum pedido pendente</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted"
+        style="padding:24px;">Nenhum pedido pendente</td></tr>`;
       alerta.style.display = 'none';
       return;
     }
@@ -255,8 +268,10 @@
         <td>${m.observacoes || '—'}</td>
         <td>
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-success btn-sm" onclick="abrirModal('${m.id}')">✅ Confirmar</button>
-            <button class="btn btn-ghost btn-sm" onclick="eliminarPendente('${m.id}')">🗑</button>
+            <button class="btn btn-success btn-sm"
+              onclick="abrirModal('${m.id}')">✅ Confirmar</button>
+            <button class="btn btn-ghost btn-sm"
+              onclick="eliminarPendente('${m.id}')">🗑</button>
           </div>
         </td>
       </tr>`).join('');
@@ -268,7 +283,8 @@
       ? confirmadas.filter(m => m._mat.toLowerCase().includes(filtro.toLowerCase()))
       : confirmadas;
     if (lista.length === 0) {
-      tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:24px;">Nenhuma entrada confirmada</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="10" class="text-center text-muted"
+        style="padding:24px;">Nenhuma entrada confirmada</td></tr>`;
       return;
     }
     tb.innerHTML = lista.map(m => `
@@ -280,6 +296,7 @@
         <td>${m.fornecedor || '—'}</td>
         <td>${m.numero_po || '—'}</td>
         <td>${m.departamento || '—'}</td>
+        <td>${m.comprador_nome || '—'}</td>
         <td>${m.recebedor_nome || '—'}</td>
         <td>${m.observacoes || '—'}</td>
       </tr>`).join('');
@@ -295,16 +312,12 @@
     const forn   = document.getElementById('f-fornecedor').value;
     const po     = document.getElementById('f-po').value.trim();
     const depto  = document.getElementById('f-departamento').value;
-    const compId = document.getElementById('f-comprador').value;
+    const comp   = document.getElementById('f-comprador').value;
     const data   = document.getElementById('f-data').value;
     const obs    = document.getElementById('f-obs').value.trim();
 
-    if (!mat)        { showToast('Selecciona um material!', 'warning'); return; }
-    if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
-
-    // Nome do comprador
-    const comp = colaboradores.find(c => c.id == compId);
-    const compNome = comp ? comp.name : '';
+    if (!mat)           { showToast('Selecciona um material!', 'warning'); return; }
+    if (!qtd || qtd<=0) { showToast('Quantidade inválida!', 'warning'); return; }
 
     const res = await db.insert('stock_movimentos', {
       tipo: 'entrada', estado: 'pendente',
@@ -312,7 +325,7 @@
       data_movimento: data || hoje(),
       fornecedor: forn, numero_po: po,
       departamento: depto,
-      comprador_nome: compNome,
+      comprador_nome: comp,
       observacoes: obs,
       colaborador_id: AUTH.id()
     });
@@ -350,20 +363,18 @@
   }
 
   async function confirmarEntrada() {
-    const qtd      = parseFloat(document.getElementById('modal-qtd').value);
-    const data     = document.getElementById('modal-data').value;
-    const obs      = document.getElementById('modal-obs').value.trim();
-    const recebId  = document.getElementById('modal-recebedor').value;
+    const qtd    = parseFloat(document.getElementById('modal-qtd').value);
+    const data   = document.getElementById('modal-data').value;
+    const obs    = document.getElementById('modal-obs').value.trim();
+    const receb  = document.getElementById('modal-recebedor').value;
 
     if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
-
-    const receb = colaboradores.find(c => c.id == recebId);
-    const recebNome = receb ? receb.name : '';
+    if (!receb) { showToast('Selecciona quem recebeu!', 'warning'); return; }
 
     const res = await db.update('stock_movimentos', modalId, {
       estado: 'confirmado', quantidade: qtd,
       data_confirmacao: data || hoje(),
-      recebedor_nome: recebNome,
+      recebedor_nome: receb,
       observacoes: obs,
       colaborador_id: AUTH.id()
     });
