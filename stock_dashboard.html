@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar">
   <a href="stock_dashboard.html" class="navbar-brand">
     <div class="logo-box">DS</div>
@@ -22,6 +21,7 @@
     <a href="stock_entradas.html">📥 Entradas</a>
     <a href="stock_saidas.html">📤 Saídas</a>
     <a href="stock_materiais.html">📦 Materiais</a>
+    <a href="stock_configuracoes.html">⚙️ Configurações</a>
   </div>
   <div class="navbar-user">
     <div>
@@ -62,17 +62,17 @@
     <div class="kpi-card">
       <div class="kpi-label">Pedidos Pendentes</div>
       <div class="kpi-value" id="kpi-pendentes">—</div>
-      <div class="kpi-sub">aguardam confirmação</div>
+      <div class="kpi-sub">aguardam confirmação de entrada</div>
     </div>
   </div>
 
-  <!-- ALERTAS -->
+  <!-- ALERTAS DE STOCK -->
   <div id="card-alertas" class="card" style="display:none;">
     <div class="card-title">⚠️ Materiais em Alerta</div>
     <div id="lista-alertas"></div>
   </div>
 
-  <!-- PENDENTES -->
+  <!-- PEDIDOS PENDENTES -->
   <div id="card-pendentes" class="card" style="display:none;">
     <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
       <span>⏳ Pedidos Pendentes de Confirmação</span>
@@ -86,7 +86,7 @@
             <th>Material</th>
             <th>Qtd</th>
             <th>Fornecedor</th>
-            <th>P/O</th>
+            <th>Departamento</th>
             <th>Acção</th>
           </tr>
         </thead>
@@ -95,10 +95,9 @@
     </div>
   </div>
 
-  <!-- DOIS PAINÉIS LADO A LADO -->
+  <!-- ÚLTIMAS ENTRADAS E SAÍDAS -->
   <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
 
-    <!-- ÚLTIMAS ENTRADAS -->
     <div class="card">
       <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
         <span>📥 Últimas Entradas</span>
@@ -111,6 +110,7 @@
               <th>Data</th>
               <th>Material</th>
               <th>Qtd</th>
+              <th>Fornecedor</th>
             </tr>
           </thead>
           <tbody id="tbody-entradas"></tbody>
@@ -118,7 +118,6 @@
       </div>
     </div>
 
-    <!-- ÚLTIMAS SAÍDAS -->
     <div class="card">
       <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
         <span>📤 Últimas Saídas</span>
@@ -141,7 +140,7 @@
 
   </div>
 
-  <!-- STOCK ACTUAL -->
+  <!-- STOCK ACTUAL COMPLETO -->
   <div class="card">
     <div class="card-title">📦 Stock Actual — Todos os Materiais</div>
     <div class="table-wrap">
@@ -195,7 +194,6 @@
       }
     });
 
-    // Helper nome material
     const nomeMat = id => {
       const m = materiais.find(x => x.id === id);
       return m ? `${m.referencia} — ${m.nome}` : '—';
@@ -205,7 +203,6 @@
       return m ? m.unidade : '';
     };
 
-    // Mês actual
     const mesAtual = agora.getMonth();
     const anoAtual = agora.getFullYear();
     const destesMes = m => {
@@ -213,31 +210,23 @@
       return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
     };
 
-    const pendentes   = movimentos.filter(m => m.estado === 'pendente');
-    const confirmedEntradas = movimentos.filter(m =>
-      m.tipo === 'entrada' && m.estado === 'confirmado');
-    const confirmedSaidas = movimentos.filter(m =>
-      m.tipo === 'saida' && m.estado === 'confirmado');
-
-    const entradasMes = confirmedEntradas.filter(destesMes).length;
-    const saidasMes   = confirmedSaidas.filter(destesMes).length;
-
-    const alertas = materiais.filter(m => {
-      const stock = stockCalc[m.id] || 0;
-      return stock <= (m.stock_minimo || 0);
-    });
+    const pendentes         = movimentos.filter(m => m.estado === 'pendente');
+    const confirmedEntradas = movimentos.filter(m => m.tipo === 'entrada' && m.estado === 'confirmado');
+    const confirmedSaidas   = movimentos.filter(m => m.tipo === 'saida'   && m.estado === 'confirmado');
+    const entradasMes       = confirmedEntradas.filter(destesMes).length;
+    const saidasMes         = confirmedSaidas.filter(destesMes).length;
+    const alertas           = materiais.filter(m => (stockCalc[m.id] || 0) <= (m.stock_minimo || 0));
 
     // KPIs
-    document.getElementById('kpi-total-mat').textContent  = materiais.length;
+    document.getElementById('kpi-total-mat').textContent   = materiais.length;
     document.getElementById('kpi-entradas-mes').textContent = entradasMes;
     document.getElementById('kpi-saidas-mes').textContent   = saidasMes;
     document.getElementById('kpi-alertas').textContent      = alertas.length;
     document.getElementById('kpi-pendentes').textContent    = pendentes.length;
 
     // Alertas
-    const cardAlertas = document.getElementById('card-alertas');
     if (alertas.length > 0) {
-      cardAlertas.style.display = 'block';
+      document.getElementById('card-alertas').style.display = 'block';
       document.getElementById('lista-alertas').innerHTML = alertas.map(m => {
         const stock = stockCalc[m.id] || 0;
         const cls   = stock <= 0 ? 'alert-danger' : 'alert-warning';
@@ -248,9 +237,8 @@
             &nbsp;|&nbsp; Stock actual:
             <strong>${fmtNum(stock, 2)} ${m.unidade}</strong>
             &nbsp;|&nbsp; Mínimo: ${fmtNum(m.stock_minimo, 2)} ${m.unidade}
-            &nbsp;
             <a href="stock_entradas.html"
-               style="color:inherit; font-weight:700; margin-left:8px;">
+               style="color:inherit; font-weight:700; margin-left:12px;">
               + Registar Entrada →
             </a>
           </div>`;
@@ -258,9 +246,8 @@
     }
 
     // Pendentes
-    const cardPend = document.getElementById('card-pendentes');
     if (pendentes.length > 0) {
-      cardPend.style.display = 'block';
+      document.getElementById('card-pendentes').style.display = 'block';
       document.getElementById('tbody-pendentes').innerHTML =
         pendentes.slice(0, 5).map(m => `
           <tr>
@@ -268,7 +255,7 @@
             <td><strong>${nomeMat(m.material_id)}</strong></td>
             <td>${fmtNum(m.quantidade, 2)} ${unidMat(m.material_id)}</td>
             <td>${m.fornecedor || '—'}</td>
-            <td>${m.numero_po || '—'}</td>
+            <td>${m.departamento || '—'}</td>
             <td>
               <a href="stock_entradas.html" class="btn btn-success btn-sm">
                 ✅ Confirmar
@@ -286,9 +273,10 @@
           <td style="color:var(--green); font-weight:700;">
             +${fmtNum(m.quantidade, 2)} ${unidMat(m.material_id)}
           </td>
+          <td>${m.fornecedor || '—'}</td>
         </tr>`).join('') ||
-      `<tr><td colspan="3" class="text-center text-muted"
-        style="padding:16px;">Sem entradas</td></tr>`;
+      `<tr><td colspan="4" class="text-center text-muted" style="padding:16px;">
+        Sem entradas</td></tr>`;
 
     // Últimas saídas
     document.getElementById('tbody-saidas').innerHTML =
@@ -301,8 +289,8 @@
           </td>
           <td>${m.departamento || '—'}</td>
         </tr>`).join('') ||
-      `<tr><td colspan="4" class="text-center text-muted"
-        style="padding:16px;">Sem saídas</td></tr>`;
+      `<tr><td colspan="4" class="text-center text-muted" style="padding:16px;">
+        Sem saídas</td></tr>`;
 
     // Stock actual completo
     document.getElementById('tbody-stock').innerHTML =
@@ -336,6 +324,5 @@
 
   init();
 </script>
-
 </body>
 </html>
