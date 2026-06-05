@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar">
   <a href="stock_dashboard.html" class="navbar-brand">
     <div class="logo-box">DS</div>
@@ -22,6 +21,7 @@
     <a href="stock_entradas.html">📥 Entradas</a>
     <a href="stock_saidas.html">📤 Saídas</a>
     <a href="stock_materiais.html" class="active">📦 Materiais</a>
+    <a href="stock_configuracoes.html">⚙️ Configurações</a>
   </div>
   <div class="navbar-user">
     <div>
@@ -33,11 +33,9 @@
 </nav>
 
 <div class="main">
-
   <div class="page-title">📦 Materiais</div>
   <div class="page-sub">Catálogo de materiais, stock actual e alertas de mínimo</div>
 
-  <!-- FORMULÁRIO -->
   <div class="card" id="card-form">
     <div class="card-title" id="form-titulo">➕ Novo Material</div>
     <div class="form-grid">
@@ -51,17 +49,7 @@
       </div>
       <div class="form-group">
         <label>Categoria</label>
-        <select id="f-categoria">
-          <option value="">-- Seleccione --</option>
-          <option>Consumível</option>
-          <option>Ferramenta</option>
-          <option>Elétrico</option>
-          <option>Mecânico</option>
-          <option>Hidráulico</option>
-          <option>EPI</option>
-          <option>Limpeza</option>
-          <option>Outro</option>
-        </select>
+        <select id="f-categoria"></select>
       </div>
       <div class="form-group">
         <label>Unidade *</label>
@@ -91,37 +79,25 @@
       </div>
     </div>
     <div style="margin-top:20px; display:flex; gap:10px;">
-      <button class="btn btn-primary" onclick="guardar()" id="btn-guardar">
-        💾 Guardar
-      </button>
-      <button class="btn btn-ghost" onclick="cancelarEdicao()">
-        ✖ Cancelar
-      </button>
+      <button class="btn btn-primary" onclick="guardar()" id="btn-guardar">💾 Guardar</button>
+      <button class="btn btn-ghost" onclick="cancelarEdicao()">✖ Cancelar</button>
     </div>
   </div>
 
-  <!-- ALERTAS DE STOCK MÍNIMO -->
+  <!-- ALERTAS -->
   <div id="card-alertas" class="card" style="display:none;">
     <div class="card-title">⚠️ Alertas de Stock Mínimo</div>
     <div id="lista-alertas"></div>
   </div>
 
-  <!-- TABELA MATERIAIS -->
+  <!-- TABELA -->
   <div class="card">
     <div class="card-title">📋 Todos os Materiais</div>
-    <div style="margin-bottom:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <div style="margin-bottom:12px; display:flex; gap:10px; flex-wrap:wrap;">
       <input type="text" id="pesquisa" placeholder="🔍 Pesquisar..."
              style="max-width:260px;" oninput="filtrar()">
-      <select id="filtro-cat" onchange="filtrar()" style="max-width:180px;">
+      <select id="filtro-cat" onchange="filtrar()" style="max-width:200px;">
         <option value="">Todas as categorias</option>
-        <option>Consumível</option>
-        <option>Ferramenta</option>
-        <option>Elétrico</option>
-        <option>Mecânico</option>
-        <option>Hidráulico</option>
-        <option>EPI</option>
-        <option>Limpeza</option>
-        <option>Outro</option>
       </select>
     </div>
     <div class="table-wrap">
@@ -141,14 +117,11 @@
           </tr>
         </thead>
         <tbody id="tbody-materiais">
-          <tr><td colspan="10" class="text-center text-muted" style="padding:24px;">
-            A carregar...
-          </td></tr>
+          <tr><td colspan="10" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-
 </div>
 
 <script src="supabase.js"></script>
@@ -159,13 +132,36 @@
   document.getElementById('user-nome').textContent  = AUTH.nome();
   document.getElementById('user-nivel').textContent = AUTH.nivel();
 
-  let materiais = [];
-  let stockCalc = {};
-  let editId    = null;
+  let materiais = [], categorias = [], stockCalc = {}, editId = null;
 
   async function init() {
+    const [mats, cats] = await Promise.all([
+      db.query('materiais', 'ativo=eq.true&order=referencia.asc'),
+      db.query('categorias_material', 'ativo=eq.true&order=nome.asc')
+    ]);
+    materiais = mats;
+    categorias = cats;
+
+    // Preencher select categoria no form
+    const selCat = document.getElementById('f-categoria');
+    selCat.innerHTML = '<option value="">-- Seleccione --</option>';
+    categorias.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.nome; o.textContent = c.nome;
+      selCat.appendChild(o);
+    });
+
+    // Preencher filtro categoria
+    const filtCat = document.getElementById('filtro-cat');
+    categorias.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.nome; o.textContent = c.nome;
+      filtCat.appendChild(o);
+    });
+
     await calcularStock();
-    await carregar();
+    renderAlertas();
+    renderTabela();
   }
 
   async function calcularStock() {
@@ -178,53 +174,30 @@
     });
   }
 
-  async function carregar() {
-    materiais = await db.query('materiais', 'ativo=eq.true&order=referencia.asc');
-    renderAlertas();
-    renderTabela();
-  }
-
   function renderAlertas() {
-    const alertas = materiais.filter(m => {
-      const stock = stockCalc[m.id] || 0;
-      return stock <= (m.stock_minimo || 0);
-    });
-
+    const alertas = materiais.filter(m => (stockCalc[m.id] || 0) <= (m.stock_minimo || 0));
     const card = document.getElementById('card-alertas');
-    const lista = document.getElementById('lista-alertas');
-
-    if (alertas.length === 0) {
-      card.style.display = 'none';
-      return;
-    }
-
+    if (alertas.length === 0) { card.style.display = 'none'; return; }
     card.style.display = 'block';
-    lista.innerHTML = alertas.map(m => {
+    document.getElementById('lista-alertas').innerHTML = alertas.map(m => {
       const stock = stockCalc[m.id] || 0;
-      const cor   = stock <= 0 ? 'alert-danger' : 'alert-warning';
-      const icon  = stock <= 0 ? '🔴' : '⚠️';
-      return `
-        <div class="alert ${cor}" style="margin-bottom:8px;">
-          ${icon} <strong>${m.referencia} — ${m.nome}</strong>
-          &nbsp;|&nbsp; Stock actual: <strong>${fmtNum(stock, 2)} ${m.unidade}</strong>
-          &nbsp;|&nbsp; Mínimo: ${fmtNum(m.stock_minimo, 2)} ${m.unidade}
-        </div>
-      `;
+      const cls  = stock <= 0 ? 'alert-danger' : 'alert-warning';
+      const icon = stock <= 0 ? '🔴' : '⚠️';
+      return `<div class="alert ${cls}" style="margin-bottom:8px;">
+        ${icon} <strong>${m.referencia} — ${m.nome}</strong>
+        &nbsp;|&nbsp; Stock actual: <strong>${fmtNum(stock, 2)} ${m.unidade}</strong>
+        &nbsp;|&nbsp; Mínimo: ${fmtNum(m.stock_minimo, 2)} ${m.unidade}
+      </div>`;
     }).join('');
   }
 
   function renderTabela(filtro = '', catFiltro = '') {
     const tb = document.getElementById('tbody-materiais');
     let lista = materiais;
-
-    if (filtro) {
-      lista = lista.filter(m =>
-        m.referencia.toLowerCase().includes(filtro.toLowerCase()) ||
-        m.nome.toLowerCase().includes(filtro.toLowerCase()));
-    }
-    if (catFiltro) {
-      lista = lista.filter(m => m.categoria === catFiltro);
-    }
+    if (filtro) lista = lista.filter(m =>
+      m.referencia.toLowerCase().includes(filtro.toLowerCase()) ||
+      m.nome.toLowerCase().includes(filtro.toLowerCase()));
+    if (catFiltro) lista = lista.filter(m => m.categoria === catFiltro);
 
     if (lista.length === 0) {
       tb.innerHTML = `<tr><td colspan="10" class="text-center text-muted"
@@ -236,46 +209,43 @@
       const stock  = stockCalc[m.id] || 0;
       const minimo = m.stock_minimo || 0;
       let badge, cor;
-
       if (stock <= 0) {
         badge = '<span class="badge badge-red">Esgotado</span>';
-        cor   = 'var(--red)';
+        cor = 'var(--red)';
       } else if (stock <= minimo) {
         badge = '<span class="badge badge-amber">Stock Baixo</span>';
-        cor   = 'var(--amber)';
+        cor = 'var(--amber)';
       } else {
         badge = '<span class="badge badge-green">OK</span>';
-        cor   = 'var(--green)';
+        cor = 'var(--green)';
       }
 
-      // Só admin/gestor pode editar/desactivar
       const acoes = AUTH.isGestor() ? `
         <div style="display:flex; gap:6px;">
           <button class="btn btn-ghost btn-sm" onclick="editar('${m.id}')">✏️</button>
           <button class="btn btn-ghost btn-sm" onclick="desactivar('${m.id}')">🗑</button>
         </div>` : '—';
 
-      return `
-        <tr>
-          <td><code style="color:var(--amber);">${m.referencia}</code></td>
-          <td><strong>${m.nome}</strong></td>
-          <td>${m.categoria || '—'}</td>
-          <td>${m.unidade}</td>
-          <td>${fmtNum(m.preco_mzn, 2)}</td>
-          <td>${fmtNum(minimo, 2)}</td>
-          <td style="color:${cor}; font-weight:700;">${fmtNum(stock, 2)}</td>
-          <td>${badge}</td>
-          <td>${m.localizacao || '—'}</td>
-          <td>${acoes}</td>
-        </tr>
-      `;
+      return `<tr>
+        <td><code style="color:var(--amber);">${m.referencia}</code></td>
+        <td><strong>${m.nome}</strong></td>
+        <td>${m.categoria || '—'}</td>
+        <td>${m.unidade}</td>
+        <td>${fmtNum(m.preco_mzn, 2)}</td>
+        <td>${fmtNum(minimo, 2)}</td>
+        <td style="color:${cor}; font-weight:700;">${fmtNum(stock, 2)}</td>
+        <td>${badge}</td>
+        <td>${m.localizacao || '—'}</td>
+        <td>${acoes}</td>
+      </tr>`;
     }).join('');
   }
 
   function filtrar() {
-    const f   = document.getElementById('pesquisa').value;
-    const cat = document.getElementById('filtro-cat').value;
-    renderTabela(f, cat);
+    renderTabela(
+      document.getElementById('pesquisa').value,
+      document.getElementById('filtro-cat').value
+    );
   }
 
   async function guardar() {
@@ -291,24 +261,21 @@
     if (!nome) { showToast('Nome obrigatório!', 'warning'); return; }
     if (!unid) { showToast('Unidade obrigatória!', 'warning'); return; }
 
-    const dados = {
-      referencia: ref, nome, categoria: cat,
+    const dados = { referencia: ref, nome, categoria: cat,
       unidade: unid, preco_mzn: preco,
-      stock_minimo: min, localizacao: local, ativo: true
-    };
+      stock_minimo: min, localizacao: local, ativo: true };
 
-    let res;
-    if (editId) {
-      res = await db.update('materiais', editId, dados);
-    } else {
-      res = await db.insert('materiais', dados);
-    }
+    const res = editId
+      ? await db.update('materiais', editId, dados)
+      : await db.insert('materiais', dados);
 
     if (res && res.length > 0) {
       showToast(editId ? 'Material actualizado! ✅' : 'Material criado! ✅', 'success');
       cancelarEdicao();
+      materiais = await db.query('materiais', 'ativo=eq.true&order=referencia.asc');
       await calcularStock();
-      await carregar();
+      renderAlertas();
+      renderTabela();
     } else {
       showToast('Erro ao guardar. Tenta novamente.', 'error');
     }
@@ -318,7 +285,6 @@
     const m = materiais.find(x => x.id === id);
     if (!m) return;
     editId = id;
-
     document.getElementById('f-ref').value      = m.referencia;
     document.getElementById('f-nome').value     = m.nome;
     document.getElementById('f-categoria').value = m.categoria || '';
@@ -326,7 +292,6 @@
     document.getElementById('f-preco').value    = m.preco_mzn || 0;
     document.getElementById('f-minimo').value   = m.stock_minimo || 0;
     document.getElementById('f-local').value    = m.localizacao || '';
-
     document.getElementById('form-titulo').textContent = '✏️ Editar Material';
     document.getElementById('btn-guardar').textContent = '💾 Actualizar';
     document.getElementById('card-form').scrollIntoView({ behavior: 'smooth' });
@@ -334,28 +299,27 @@
 
   function cancelarEdicao() {
     editId = null;
-    document.getElementById('f-ref').value       = '';
-    document.getElementById('f-nome').value      = '';
+    ['f-ref','f-nome','f-preco','f-minimo','f-local'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
     document.getElementById('f-categoria').value = '';
     document.getElementById('f-unidade').value   = '';
-    document.getElementById('f-preco').value     = '';
-    document.getElementById('f-minimo').value    = '';
-    document.getElementById('f-local').value     = '';
     document.getElementById('form-titulo').textContent = '➕ Novo Material';
     document.getElementById('btn-guardar').textContent = '💾 Guardar';
   }
 
   async function desactivar(id) {
-    const ok = await confirmar('Desactivar este material? Não aparecerá mais nas listas.');
+    const ok = await confirmar('Desactivar este material?');
     if (!ok) return;
     await db.update('materiais', id, { ativo: false });
     showToast('Material desactivado.', 'info');
+    materiais = await db.query('materiais', 'ativo=eq.true&order=referencia.asc');
     await calcularStock();
-    await carregar();
+    renderAlertas();
+    renderTabela();
   }
 
   init();
 </script>
-
 </body>
 </html>
