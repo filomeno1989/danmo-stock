@@ -57,14 +57,6 @@
         <select id="f-colaborador"></select>
       </div>
       <div class="form-group">
-        <label>Fornecido por</label>
-        <select id="f-fornecedor"></select>
-      </div>
-      <div class="form-group">
-        <label>Departamento</label>
-        <select id="f-departamento"></select>
-      </div>
-      <div class="form-group">
         <label>Finalidade</label>
         <select id="f-finalidade"></select>
       </div>
@@ -102,8 +94,6 @@
             <th>Qtd</th>
             <th>Unid.</th>
             <th>Colaborador</th>
-            <th>Fornecido por</th>
-            <th>Departamento</th>
             <th>Finalidade</th>
             <th>Nº Req.</th>
             <th>Obs.</th>
@@ -111,7 +101,7 @@
           </tr>
         </thead>
         <tbody id="tbody-saidas">
-          <tr><td colspan="11" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
+          <tr><td colspan="9" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
@@ -127,32 +117,24 @@
   document.getElementById('user-nivel').textContent = AUTH.nivel();
   document.getElementById('f-data').value = hoje();
 
-  let materiais = [], colaboradores = [], fornecedores = [];
-  let departamentos = [], finalidades = [], saidas = [], stockCalc = {};
+  let materiais = [], colaboradores = [], finalidades = [];
+  let saidas = [], stockCalc = {};
 
   async function init() {
-    const [mats, colabs, forns, deptos, fins] = await Promise.all([
+    const [mats, colabs, fins] = await Promise.all([
       db.query('materiais', 'ativo=eq.true&order=nome.asc'),
       db.query('collaborators', 'active=eq.true&order=name.asc'),
-      db.query('fornecedores', 'ativo=eq.true&order=nome.asc'),
-      db.query('departamentos', 'ativo=eq.true&order=nome.asc'),
       db.query('finalidades', 'ativo=eq.true&order=nome.asc')
     ]);
 
-    materiais     = mats;
+    materiais    = mats;
     colaboradores = colabs;
-    fornecedores  = forns;
-    departamentos = deptos;
-    finalidades   = fins;
+    finalidades  = fins;
 
     preencherSelect('f-material', materiais,
       m => `${m.referencia} — ${m.nome}`, m => m.id, '-- Seleccione --');
     preencherSelect('f-colaborador', colaboradores,
-      c => `${c.code} — ${c.name}`, c => c.id, '-- Seleccione --');
-    preencherSelect('f-fornecedor', fornecedores,
-      f => f.nome, f => f.nome, '-- Seleccione --');
-    preencherSelect('f-departamento', departamentos,
-      d => d.nome, d => d.nome, '-- Seleccione --');
+      c => `${c.code} — ${c.name}`, c => c.name, '-- Seleccione --');
     preencherSelect('f-finalidade', finalidades,
       f => f.nome, f => f.nome, '-- Seleccione --');
 
@@ -191,7 +173,7 @@
     const mat   = materiais.find(x => x.id === matId);
     const stock = stockCalc[matId] || 0;
     const campo = document.getElementById('f-stock');
-    if (!mat) { campo.value = ''; return; }
+    if (!mat) { campo.value = ''; campo.style.color = ''; return; }
     campo.value = `${fmtNum(stock, 2)} ${mat.unidade}`;
     campo.style.color = stock <= (mat.stock_minimo || 0)
       ? 'var(--red)' : 'var(--green)';
@@ -218,7 +200,7 @@
       : saidas;
 
     if (lista.length === 0) {
-      tb.innerHTML = `<tr><td colspan="11" class="text-center text-muted"
+      tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted"
         style="padding:24px;">Nenhuma saída registada</td></tr>`;
       return;
     }
@@ -230,13 +212,12 @@
         <td style="color:var(--red); font-weight:700;">-${fmtNum(m.quantidade, 2)}</td>
         <td>${m._unid}</td>
         <td>${m.colaborador_nome || '—'}</td>
-        <td>${m.fornecedor_saida || '—'}</td>
-        <td>${m.departamento || '—'}</td>
         <td>${m.finalidade || '—'}</td>
         <td>${m.numero_requisicao || '—'}</td>
         <td>${m.observacoes || '—'}</td>
         <td>
-          <button class="btn btn-ghost btn-sm" onclick="eliminar('${m.id}')">🗑</button>
+          <button class="btn btn-ghost btn-sm"
+            onclick="eliminar('${m.id}')">🗑</button>
         </td>
       </tr>`).join('');
   }
@@ -246,19 +227,17 @@
   }
 
   async function guardarSaida() {
-    const matId  = document.getElementById('f-material').value;
-    const qtd    = parseFloat(document.getElementById('f-qtd').value);
-    const colId  = document.getElementById('f-colaborador').value;
-    const forn   = document.getElementById('f-fornecedor').value;
-    const depto  = document.getElementById('f-departamento').value;
-    const final  = document.getElementById('f-finalidade').value;
-    const req    = document.getElementById('f-requisicao').value.trim();
-    const data   = document.getElementById('f-data').value;
-    const obs    = document.getElementById('f-obs').value.trim();
+    const matId = document.getElementById('f-material').value;
+    const qtd   = parseFloat(document.getElementById('f-qtd').value);
+    const col   = document.getElementById('f-colaborador').value;
+    const final = document.getElementById('f-finalidade').value;
+    const req   = document.getElementById('f-requisicao').value.trim();
+    const data  = document.getElementById('f-data').value;
+    const obs   = document.getElementById('f-obs').value.trim();
 
-    if (!matId) { showToast('Selecciona um material!', 'warning'); return; }
-    if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
-    if (!colId) { showToast('Selecciona o colaborador!', 'warning'); return; }
+    if (!matId)         { showToast('Selecciona um material!', 'warning'); return; }
+    if (!qtd || qtd<=0) { showToast('Quantidade inválida!', 'warning'); return; }
+    if (!col)           { showToast('Selecciona o colaborador!', 'warning'); return; }
 
     const stockDisp = stockCalc[matId] || 0;
     if (qtd > stockDisp) {
@@ -266,17 +245,12 @@
       return;
     }
 
-    const col = colaboradores.find(c => c.id == colId);
-    const colNome = col ? col.name : '';
-
     const res = await db.insert('stock_movimentos', {
       tipo: 'saida', estado: 'confirmado',
       material_id: matId, quantidade: qtd,
       data_movimento: data || hoje(),
       data_confirmacao: data || hoje(),
-      colaborador_nome: colNome,
-      fornecedor_saida: forn,
-      departamento: depto,
+      colaborador_nome: col,
       finalidade: final,
       numero_requisicao: req,
       observacoes: obs,
@@ -294,12 +268,13 @@
   }
 
   function limparForm() {
-    ['f-material','f-qtd','f-colaborador','f-fornecedor',
-     'f-departamento','f-finalidade','f-requisicao','f-obs'].forEach(id => {
+    ['f-material','f-qtd','f-colaborador',
+     'f-finalidade','f-requisicao','f-obs'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('f-data').value = hoje();
     document.getElementById('f-stock').value = '';
+    document.getElementById('f-stock').style.color = '';
   }
 
   async function eliminar(id) {
