@@ -5,6 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DSS Stock — Saídas</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .nav-dropdown { position:relative; }
+    .nav-dropdown-btn {
+      background:transparent; border:none; color:var(--text2);
+      padding:8px 16px; cursor:pointer; font-family:'Source Sans 3';
+      font-size:13px; letter-spacing:1px; text-transform:uppercase;
+      border-radius:4px; transition:all 0.2s;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .nav-dropdown-btn:hover, .nav-dropdown-btn.open {
+      background:rgba(245,158,11,0.15); color:var(--amber);
+    }
+    .nav-dropdown-menu {
+      position:absolute; top:calc(100% + 8px); left:0;
+      background:var(--navy2); border:1px solid var(--border);
+      border-radius:8px; min-width:220px; z-index:999;
+      box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      padding:6px; display:none;
+    }
+    .nav-dropdown-menu.open { display:block; }
+    .nav-dropdown-item {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 12px; border-radius:5px; cursor:pointer;
+      color:var(--text2); font-size:13px; text-decoration:none;
+      transition:all 0.2s; white-space:nowrap;
+    }
+    .nav-dropdown-item:hover { background:rgba(245,158,11,0.12); color:var(--amber); }
+    .nav-dropdown-item.active { color:var(--amber); font-weight:600; }
+    .nav-divider { height:1px; background:var(--border); margin:4px 0; }
+    .nav-home-btn {
+      background:transparent; border:none; color:var(--text2);
+      padding:8px 16px; cursor:pointer; font-family:'Source Sans 3';
+      font-size:13px; letter-spacing:1px; text-transform:uppercase;
+      border-radius:4px; transition:all 0.2s; text-decoration:none;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .nav-home-btn:hover { background:rgba(245,158,11,0.15); color:var(--amber); }
+  </style>
 </head>
 <body>
 
@@ -16,18 +54,33 @@
       <div class="brand-sub">Gestão de Stock</div>
     </div>
   </a>
-  <div class="navbar-menu">
-    <a href="stock_dashboard.html">📊 Dashboard</a>
-    <a href="stock_entradas.html">📥 Entradas</a>
-    <a href="stock_saidas.html" class="active">📤 Saídas</a>
-    <a href="stock_materiais.html">📦 Materiais</a>
-    <a href="stock_configuracoes.html">⚙️ Configurações</a>
+  <div style="display:flex; align-items:center; gap:4px;">
+    <a href="stock_dashboard.html" class="nav-home-btn">🏠 Início</a>
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-btn" id="nav-servicos-btn" onclick="toggleDropdown()">
+        ⚙️ Serviços ▾
+      </button>
+      <div class="nav-dropdown-menu" id="nav-servicos-menu">
+        <a href="stock_entradas.html"      class="nav-dropdown-item">📥 Entradas</a>
+        <a href="stock_saidas.html"        class="nav-dropdown-item active">📤 Saídas</a>
+        <a href="stock_materiais.html"     class="nav-dropdown-item">📦 Materiais</a>
+        <div class="nav-divider"></div>
+        <a href="stock_relatorios.html"    class="nav-dropdown-item">📈 Relatórios</a>
+        <a href="stock_configuracoes.html" class="nav-dropdown-item">⚙️ Configurações</a>
+      </div>
+    </div>
   </div>
   <div class="navbar-user">
     <div>
       <strong id="user-nome"></strong>
       <div id="user-nivel" style="font-size:11px; text-transform:uppercase;"></div>
     </div>
+    <button id="btn-tema-header" onclick="togglePainelTemas()"
+      style="background:transparent; border:1px solid var(--border); color:var(--text2);
+             padding:6px 10px; border-radius:5px; cursor:pointer; font-size:14px;
+             margin-right:6px; transition:all 0.2s;" title="Aparência"
+      onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">🎨</button>
     <button class="btn-sair" onclick="AUTH.logout()">Sair</button>
   </div>
 </nav>
@@ -89,15 +142,9 @@
       <table>
         <thead>
           <tr>
-            <th>Data</th>
-            <th>Material</th>
-            <th>Qtd</th>
-            <th>Unid.</th>
-            <th>Colaborador</th>
-            <th>Finalidade</th>
-            <th>Nº Req.</th>
-            <th>Obs.</th>
-            <th>Acções</th>
+            <th>Data</th><th>Material</th><th>Qtd</th><th>Unid.</th>
+            <th>Colaborador</th><th>Finalidade</th>
+            <th>Nº Req.</th><th>Obs.</th><th>Acções</th>
           </tr>
         </thead>
         <tbody id="tbody-saidas">
@@ -108,6 +155,7 @@
   </div>
 </div>
 
+<script src="tema.js"></script>
 <script src="supabase.js"></script>
 <script src="auth.js"></script>
 <script src="utils.js"></script>
@@ -116,6 +164,22 @@
   document.getElementById('user-nome').textContent  = AUTH.nome();
   document.getElementById('user-nivel').textContent = AUTH.nivel();
   document.getElementById('f-data').value = hoje();
+
+  function toggleDropdown() {
+    const menu = document.getElementById('nav-servicos-menu');
+    const btn  = document.getElementById('nav-servicos-btn');
+    menu.classList.toggle('open');
+    btn.classList.toggle('open');
+  }
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('nav-servicos-menu');
+    const btn  = document.getElementById('nav-servicos-btn');
+    if (!menu) return;
+    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+      menu.classList.remove('open');
+      btn.classList.remove('open');
+    }
+  });
 
   let materiais = [], colaboradores = [], finalidades = [];
   let saidas = [], stockCalc = {};
@@ -127,9 +191,9 @@
       db.query('finalidades', 'ativo=eq.true&order=nome.asc')
     ]);
 
-    materiais    = mats;
+    materiais     = mats;
     colaboradores = colabs;
-    finalidades  = fins;
+    finalidades   = fins;
 
     preencherSelect('f-material', materiais,
       m => `${m.referencia} — ${m.nome}`, m => m.id, '-- Seleccione --');
@@ -272,7 +336,7 @@
      'f-finalidade','f-requisicao','f-obs'].forEach(id => {
       document.getElementById(id).value = '';
     });
-    document.getElementById('f-data').value = hoje();
+    document.getElementById('f-data').value  = hoje();
     document.getElementById('f-stock').value = '';
     document.getElementById('f-stock').style.color = '';
   }
