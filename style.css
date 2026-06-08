@@ -336,6 +336,15 @@ textarea { resize: vertical; min-height: 80px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
+/* ── VARIÁVEIS COMPATIBILIDADE TEMA ── */
+:root {
+  --white:  #f8fafc;
+  --light:  #e2e8f0;
+  --steel:  #94a3b8;
+  --steel2: #64748b;
+  --card:   rgba(15,32,64,0.85);
+}
+
 /* ── RESPONSIVO ── */
 @media (max-width: 600px) {
   .main { padding: 16px; }
