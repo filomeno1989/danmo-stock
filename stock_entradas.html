@@ -45,7 +45,18 @@
       </div>
       <div class="form-group">
         <label>Quantidade *</label>
-        <input type="number" id="f-qtd" min="0.01" step="0.01" placeholder="0.00">
+        <input type="number" id="f-qtd" min="0.01" step="0.01" placeholder="0.00"
+               oninput="calcularTotal()">
+      </div>
+      <div class="form-group">
+        <label>Preço Unitário (MZN)</label>
+        <input type="number" id="f-preco" min="0" step="0.01" placeholder="0.00"
+               oninput="calcularTotal()">
+      </div>
+      <div class="form-group">
+        <label>Total (MZN)</label>
+        <input type="text" id="f-total" readonly
+               style="background:var(--navy3); cursor:default; color:var(--amber); font-weight:700;">
       </div>
       <div class="form-group">
         <label>Fornecedor</label>
@@ -90,6 +101,8 @@
             <th>Data</th>
             <th>Material</th>
             <th>Qtd</th>
+            <th>Preço Unit.</th>
+            <th>Total</th>
             <th>Fornecedor</th>
             <th>Pro-forma/Cot.</th>
             <th>Departamento</th>
@@ -99,7 +112,7 @@
           </tr>
         </thead>
         <tbody id="tbody-pendentes">
-          <tr><td colspan="9" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
+          <tr><td colspan="11" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
@@ -119,6 +132,8 @@
             <th>Material</th>
             <th>Qtd</th>
             <th>Unid.</th>
+            <th>Preço Unit.</th>
+            <th>Total</th>
             <th>Fornecedor</th>
             <th>Pro-forma/Cot.</th>
             <th>Departamento</th>
@@ -128,7 +143,7 @@
           </tr>
         </thead>
         <tbody id="tbody-confirmadas">
-          <tr><td colspan="10" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
+          <tr><td colspan="12" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
@@ -139,7 +154,7 @@
 <div id="modal-confirmar" style="display:none; position:fixed; inset:0;
      background:rgba(0,0,0,0.6); z-index:500; align-items:center; justify-content:center;">
   <div style="background:var(--navy2); border:1px solid var(--border);
-              border-radius:12px; padding:28px; width:100%; max-width:440px;">
+              border-radius:12px; padding:28px; width:100%; max-width:480px;">
     <div style="font-size:17px; font-weight:700; color:var(--amber); margin-bottom:20px;">
       ✅ Confirmar Entrada no Armazém
     </div>
@@ -149,7 +164,19 @@
     <div class="form-grid">
       <div class="form-group">
         <label>Quantidade Recebida *</label>
-        <input type="number" id="modal-qtd" min="0.01" step="0.01">
+        <input type="number" id="modal-qtd" min="0.01" step="0.01"
+               oninput="calcularTotalModal()">
+      </div>
+      <div class="form-group">
+        <label>Preço Unitário (MZN)</label>
+        <input type="number" id="modal-preco" min="0" step="0.01"
+               oninput="calcularTotalModal()">
+      </div>
+      <div class="form-group">
+        <label>Total (MZN)</label>
+        <input type="text" id="modal-total" readonly
+               style="background:var(--navy3); cursor:default;
+                      color:var(--amber); font-weight:700;">
       </div>
       <div class="form-group">
         <label>Recebido por *</label>
@@ -194,11 +221,11 @@
       db.query('responsaveis', 'ativo=eq.true&funcao=in.(receptor,ambos)&order=nome.asc')
     ]);
 
-    materiais    = mats;
-    fornecedores = forns;
+    materiais     = mats;
+    fornecedores  = forns;
     departamentos = deptos;
-    compradores  = comps;
-    receptores   = recs;
+    compradores   = comps;
+    receptores    = recs;
 
     preencherSelect('f-material', materiais,
       m => `${m.referencia} — ${m.nome}`, m => m.id, '-- Seleccione --');
@@ -230,6 +257,20 @@
     });
   }
 
+  function calcularTotal() {
+    const qtd   = parseFloat(document.getElementById('f-qtd').value) || 0;
+    const preco = parseFloat(document.getElementById('f-preco').value) || 0;
+    document.getElementById('f-total').value =
+      qtd && preco ? fmtNum(qtd * preco, 2) + ' MZN' : '';
+  }
+
+  function calcularTotalModal() {
+    const qtd   = parseFloat(document.getElementById('modal-qtd').value) || 0;
+    const preco = parseFloat(document.getElementById('modal-preco').value) || 0;
+    document.getElementById('modal-total').value =
+      qtd && preco ? fmtNum(qtd * preco, 2) + ' MZN' : '';
+  }
+
   async function carregarMovimentos() {
     const todos = await db.query('stock_movimentos',
       'tipo=eq.entrada&order=criado_em.desc');
@@ -250,17 +291,20 @@
     const tb     = document.getElementById('tbody-pendentes');
     const alerta = document.getElementById('alerta-pendentes');
     if (pendentes.length === 0) {
-      tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted"
+      tb.innerHTML = `<tr><td colspan="11" class="text-center text-muted"
         style="padding:24px;">Nenhum pedido pendente</td></tr>`;
       alerta.style.display = 'none';
       return;
     }
     alerta.style.display = 'flex';
-    tb.innerHTML = pendentes.map(m => `
-      <tr>
+    tb.innerHTML = pendentes.map(m => {
+      const total = (m.preco_unitario || 0) * m.quantidade;
+      return `<tr>
         <td>${fmtData(m.data_movimento)}</td>
         <td><strong>${m._mat}</strong></td>
         <td>${fmtNum(m.quantidade, 2)}</td>
+        <td>${m.preco_unitario ? fmtNum(m.preco_unitario, 2) + ' MZN' : '—'}</td>
+        <td>${total ? fmtNum(total, 2) + ' MZN' : '—'}</td>
         <td>${m.fornecedor || '—'}</td>
         <td>${m.numero_po || '—'}</td>
         <td>${m.departamento || '—'}</td>
@@ -274,7 +318,8 @@
               onclick="eliminarPendente('${m.id}')">🗑</button>
           </div>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
 
   function renderConfirmadas(filtro = '') {
@@ -283,23 +328,29 @@
       ? confirmadas.filter(m => m._mat.toLowerCase().includes(filtro.toLowerCase()))
       : confirmadas;
     if (lista.length === 0) {
-      tb.innerHTML = `<tr><td colspan="10" class="text-center text-muted"
+      tb.innerHTML = `<tr><td colspan="12" class="text-center text-muted"
         style="padding:24px;">Nenhuma entrada confirmada</td></tr>`;
       return;
     }
-    tb.innerHTML = lista.map(m => `
-      <tr>
+    tb.innerHTML = lista.map(m => {
+      const total = (m.preco_unitario || 0) * m.quantidade;
+      return `<tr>
         <td>${fmtData(m.data_confirmacao || m.data_movimento)}</td>
         <td><strong>${m._mat}</strong></td>
         <td style="color:var(--green); font-weight:700;">${fmtNum(m.quantidade, 2)}</td>
         <td>${m._unid}</td>
+        <td>${m.preco_unitario ? fmtNum(m.preco_unitario, 2) + ' MZN' : '—'}</td>
+        <td style="color:var(--amber); font-weight:700;">
+          ${total ? fmtNum(total, 2) + ' MZN' : '—'}
+        </td>
         <td>${m.fornecedor || '—'}</td>
         <td>${m.numero_po || '—'}</td>
         <td>${m.departamento || '—'}</td>
         <td>${m.comprador_nome || '—'}</td>
         <td>${m.recebedor_nome || '—'}</td>
         <td>${m.observacoes || '—'}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
 
   function filtrarConfirmadas() {
@@ -307,14 +358,15 @@
   }
 
   async function guardarEntrada() {
-    const mat    = document.getElementById('f-material').value;
-    const qtd    = parseFloat(document.getElementById('f-qtd').value);
-    const forn   = document.getElementById('f-fornecedor').value;
-    const po     = document.getElementById('f-po').value.trim();
-    const depto  = document.getElementById('f-departamento').value;
-    const comp   = document.getElementById('f-comprador').value;
-    const data   = document.getElementById('f-data').value;
-    const obs    = document.getElementById('f-obs').value.trim();
+    const mat   = document.getElementById('f-material').value;
+    const qtd   = parseFloat(document.getElementById('f-qtd').value);
+    const preco = parseFloat(document.getElementById('f-preco').value) || 0;
+    const forn  = document.getElementById('f-fornecedor').value;
+    const po    = document.getElementById('f-po').value.trim();
+    const depto = document.getElementById('f-departamento').value;
+    const comp  = document.getElementById('f-comprador').value;
+    const data  = document.getElementById('f-data').value;
+    const obs   = document.getElementById('f-obs').value.trim();
 
     if (!mat)           { showToast('Selecciona um material!', 'warning'); return; }
     if (!qtd || qtd<=0) { showToast('Quantidade inválida!', 'warning'); return; }
@@ -322,6 +374,7 @@
     const res = await db.insert('stock_movimentos', {
       tipo: 'entrada', estado: 'pendente',
       material_id: mat, quantidade: qtd,
+      preco_unitario: preco,
       data_movimento: data || hoje(),
       fornecedor: forn, numero_po: po,
       departamento: depto,
@@ -340,20 +393,23 @@
   }
 
   function limparForm() {
-    ['f-material','f-qtd','f-fornecedor','f-po',
-     'f-departamento','f-comprador','f-obs'].forEach(id => {
+    ['f-material','f-qtd','f-preco','f-fornecedor',
+     'f-po','f-departamento','f-comprador','f-obs'].forEach(id => {
       document.getElementById(id).value = '';
     });
-    document.getElementById('f-data').value = hoje();
+    document.getElementById('f-data').value  = hoje();
+    document.getElementById('f-total').value = '';
   }
 
   function abrirModal(id) {
     modalId = id;
     const m = pendentes.find(x => x.id === id);
     document.getElementById('modal-material').textContent = m._mat;
-    document.getElementById('modal-qtd').value  = m.quantidade;
-    document.getElementById('modal-data').value = hoje();
-    document.getElementById('modal-obs').value  = '';
+    document.getElementById('modal-qtd').value   = m.quantidade;
+    document.getElementById('modal-preco').value = m.preco_unitario || '';
+    document.getElementById('modal-data').value  = hoje();
+    document.getElementById('modal-obs').value   = '';
+    calcularTotalModal();
     document.getElementById('modal-confirmar').style.display = 'flex';
   }
 
@@ -363,16 +419,19 @@
   }
 
   async function confirmarEntrada() {
-    const qtd    = parseFloat(document.getElementById('modal-qtd').value);
-    const data   = document.getElementById('modal-data').value;
-    const obs    = document.getElementById('modal-obs').value.trim();
-    const receb  = document.getElementById('modal-recebedor').value;
+    const qtd   = parseFloat(document.getElementById('modal-qtd').value);
+    const preco = parseFloat(document.getElementById('modal-preco').value) || 0;
+    const data  = document.getElementById('modal-data').value;
+    const obs   = document.getElementById('modal-obs').value.trim();
+    const receb = document.getElementById('modal-recebedor').value;
 
     if (!qtd || qtd <= 0) { showToast('Quantidade inválida!', 'warning'); return; }
     if (!receb) { showToast('Selecciona quem recebeu!', 'warning'); return; }
 
     const res = await db.update('stock_movimentos', modalId, {
-      estado: 'confirmado', quantidade: qtd,
+      estado: 'confirmado',
+      quantidade: qtd,
+      preco_unitario: preco,
       data_confirmacao: data || hoje(),
       recebedor_nome: receb,
       observacoes: obs,
