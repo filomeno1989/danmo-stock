@@ -66,10 +66,6 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Preço Unit. (MZN)</label>
-        <input type="number" id="f-preco" min="0" step="0.01" placeholder="0.00">
-      </div>
-      <div class="form-group">
         <label>Stock Mínimo</label>
         <input type="number" id="f-minimo" min="0" step="0.01" placeholder="0">
       </div>
@@ -108,7 +104,6 @@
             <th>Nome</th>
             <th>Categoria</th>
             <th>Unid.</th>
-            <th>Preço (MZN)</th>
             <th>Stock Mín.</th>
             <th>Stock Actual</th>
             <th>Estado</th>
@@ -117,7 +112,7 @@
           </tr>
         </thead>
         <tbody id="tbody-materiais">
-          <tr><td colspan="10" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
+          <tr><td colspan="9" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
         </tbody>
       </table>
     </div>
@@ -139,10 +134,9 @@
       db.query('materiais', 'ativo=eq.true&order=referencia.asc'),
       db.query('categorias_material', 'ativo=eq.true&order=nome.asc')
     ]);
-    materiais = mats;
+    materiais  = mats;
     categorias = cats;
 
-    // Preencher select categoria no form
     const selCat = document.getElementById('f-categoria');
     selCat.innerHTML = '<option value="">-- Seleccione --</option>';
     categorias.forEach(c => {
@@ -151,7 +145,6 @@
       selCat.appendChild(o);
     });
 
-    // Preencher filtro categoria
     const filtCat = document.getElementById('filtro-cat');
     categorias.forEach(c => {
       const o = document.createElement('option');
@@ -175,17 +168,19 @@
   }
 
   function renderAlertas() {
-    const alertas = materiais.filter(m => (stockCalc[m.id] || 0) <= (m.stock_minimo || 0));
+    const alertas = materiais.filter(m =>
+      (stockCalc[m.id] || 0) <= (m.stock_minimo || 0));
     const card = document.getElementById('card-alertas');
     if (alertas.length === 0) { card.style.display = 'none'; return; }
     card.style.display = 'block';
     document.getElementById('lista-alertas').innerHTML = alertas.map(m => {
       const stock = stockCalc[m.id] || 0;
-      const cls  = stock <= 0 ? 'alert-danger' : 'alert-warning';
-      const icon = stock <= 0 ? '🔴' : '⚠️';
+      const cls   = stock <= 0 ? 'alert-danger' : 'alert-warning';
+      const icon  = stock <= 0 ? '🔴' : '⚠️';
       return `<div class="alert ${cls}" style="margin-bottom:8px;">
         ${icon} <strong>${m.referencia} — ${m.nome}</strong>
-        &nbsp;|&nbsp; Stock actual: <strong>${fmtNum(stock, 2)} ${m.unidade}</strong>
+        &nbsp;|&nbsp; Stock actual:
+        <strong>${fmtNum(stock, 2)} ${m.unidade}</strong>
         &nbsp;|&nbsp; Mínimo: ${fmtNum(m.stock_minimo, 2)} ${m.unidade}
       </div>`;
     }).join('');
@@ -200,7 +195,7 @@
     if (catFiltro) lista = lista.filter(m => m.categoria === catFiltro);
 
     if (lista.length === 0) {
-      tb.innerHTML = `<tr><td colspan="10" class="text-center text-muted"
+      tb.innerHTML = `<tr><td colspan="9" class="text-center text-muted"
         style="padding:24px;">Nenhum material encontrado</td></tr>`;
       return;
     }
@@ -231,7 +226,6 @@
         <td><strong>${m.nome}</strong></td>
         <td>${m.categoria || '—'}</td>
         <td>${m.unidade}</td>
-        <td>${fmtNum(m.preco_mzn, 2)}</td>
         <td>${fmtNum(minimo, 2)}</td>
         <td style="color:${cor}; font-weight:700;">${fmtNum(stock, 2)}</td>
         <td>${badge}</td>
@@ -253,7 +247,6 @@
     const nome  = document.getElementById('f-nome').value.trim();
     const cat   = document.getElementById('f-categoria').value;
     const unid  = document.getElementById('f-unidade').value;
-    const preco = parseFloat(document.getElementById('f-preco').value) || 0;
     const min   = parseFloat(document.getElementById('f-minimo').value) || 0;
     const local = document.getElementById('f-local').value.trim();
 
@@ -261,9 +254,11 @@
     if (!nome) { showToast('Nome obrigatório!', 'warning'); return; }
     if (!unid) { showToast('Unidade obrigatória!', 'warning'); return; }
 
-    const dados = { referencia: ref, nome, categoria: cat,
-      unidade: unid, preco_mzn: preco,
-      stock_minimo: min, localizacao: local, ativo: true };
+    const dados = {
+      referencia: ref, nome, categoria: cat,
+      unidade: unid, stock_minimo: min,
+      localizacao: local, ativo: true
+    };
 
     const res = editId
       ? await db.update('materiais', editId, dados)
@@ -285,13 +280,12 @@
     const m = materiais.find(x => x.id === id);
     if (!m) return;
     editId = id;
-    document.getElementById('f-ref').value      = m.referencia;
-    document.getElementById('f-nome').value     = m.nome;
+    document.getElementById('f-ref').value       = m.referencia;
+    document.getElementById('f-nome').value      = m.nome;
     document.getElementById('f-categoria').value = m.categoria || '';
-    document.getElementById('f-unidade').value  = m.unidade;
-    document.getElementById('f-preco').value    = m.preco_mzn || 0;
-    document.getElementById('f-minimo').value   = m.stock_minimo || 0;
-    document.getElementById('f-local').value    = m.localizacao || '';
+    document.getElementById('f-unidade').value   = m.unidade;
+    document.getElementById('f-minimo').value    = m.stock_minimo || 0;
+    document.getElementById('f-local').value     = m.localizacao || '';
     document.getElementById('form-titulo').textContent = '✏️ Editar Material';
     document.getElementById('btn-guardar').textContent = '💾 Actualizar';
     document.getElementById('card-form').scrollIntoView({ behavior: 'smooth' });
@@ -299,7 +293,7 @@
 
   function cancelarEdicao() {
     editId = null;
-    ['f-ref','f-nome','f-preco','f-minimo','f-local'].forEach(id => {
+    ['f-ref','f-nome','f-minimo','f-local'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('f-categoria').value = '';
