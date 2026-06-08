@@ -31,6 +31,8 @@ const tema = {
       r.style.setProperty('--steel2','#6b7280');
       r.style.setProperty('--border','rgba(0,0,0,0.12)');
       r.style.setProperty('--card',  'rgba(255,255,255,0.92)');
+      r.style.setProperty('--text',  '#1a1a1a');
+      r.style.setProperty('--text2', '#374151');
     } else {
       r.style.setProperty('--white', '#f8fafc');
       r.style.setProperty('--light', '#e2e8f0');
@@ -38,6 +40,8 @@ const tema = {
       r.style.setProperty('--steel2','#64748b');
       r.style.setProperty('--border','rgba(148,163,184,0.2)');
       r.style.setProperty('--card',  'rgba(15,32,64,0.85)');
+      r.style.setProperty('--text',  '#e2e8f0');
+      r.style.setProperty('--text2', '#94a3b8');
     }
     localStorage.setItem('danmo_tema_cor', cor);
     localStorage.setItem('danmo_tema_modo', modo);
