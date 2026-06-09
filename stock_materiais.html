@@ -5,6 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DSS Stock — Materiais</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .nav-dropdown { position:relative; }
+    .nav-dropdown-btn {
+      background:transparent; border:none; color:var(--text2);
+      padding:8px 16px; cursor:pointer; font-family:'Source Sans 3';
+      font-size:13px; letter-spacing:1px; text-transform:uppercase;
+      border-radius:4px; transition:all 0.2s;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .nav-dropdown-btn:hover, .nav-dropdown-btn.open {
+      background:rgba(245,158,11,0.15); color:var(--amber);
+    }
+    .nav-dropdown-menu {
+      position:absolute; top:calc(100% + 8px); left:0;
+      background:var(--navy2); border:1px solid var(--border);
+      border-radius:8px; min-width:220px; z-index:999;
+      box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      padding:6px; display:none;
+    }
+    .nav-dropdown-menu.open { display:block; }
+    .nav-dropdown-item {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 12px; border-radius:5px; cursor:pointer;
+      color:var(--text2); font-size:13px; text-decoration:none;
+      transition:all 0.2s; white-space:nowrap;
+    }
+    .nav-dropdown-item:hover { background:rgba(245,158,11,0.12); color:var(--amber); }
+    .nav-dropdown-item.active { color:var(--amber); font-weight:600; }
+    .nav-divider { height:1px; background:var(--border); margin:4px 0; }
+    .nav-home-btn {
+      background:transparent; border:none; color:var(--text2);
+      padding:8px 16px; cursor:pointer; font-family:'Source Sans 3';
+      font-size:13px; letter-spacing:1px; text-transform:uppercase;
+      border-radius:4px; transition:all 0.2s; text-decoration:none;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .nav-home-btn:hover { background:rgba(245,158,11,0.15); color:var(--amber); }
+  </style>
 </head>
 <body>
 
@@ -16,18 +54,33 @@
       <div class="brand-sub">Gestão de Stock</div>
     </div>
   </a>
-  <div class="navbar-menu">
-    <a href="stock_dashboard.html">📊 Dashboard</a>
-    <a href="stock_entradas.html">📥 Entradas</a>
-    <a href="stock_saidas.html">📤 Saídas</a>
-    <a href="stock_materiais.html" class="active">📦 Materiais</a>
-    <a href="stock_configuracoes.html">⚙️ Configurações</a>
+  <div style="display:flex; align-items:center; gap:4px;">
+    <a href="stock_dashboard.html" class="nav-home-btn">🏠 Início</a>
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-btn" id="nav-servicos-btn" onclick="toggleDropdown()">
+        ⚙️ Serviços ▾
+      </button>
+      <div class="nav-dropdown-menu" id="nav-servicos-menu">
+        <a href="stock_entradas.html"      class="nav-dropdown-item">📥 Entradas</a>
+        <a href="stock_saidas.html"        class="nav-dropdown-item">📤 Saídas</a>
+        <a href="stock_materiais.html"     class="nav-dropdown-item active">📦 Materiais</a>
+        <div class="nav-divider"></div>
+        <a href="stock_relatorios.html"    class="nav-dropdown-item">📈 Relatórios</a>
+        <a href="stock_configuracoes.html" class="nav-dropdown-item">⚙️ Configurações</a>
+      </div>
+    </div>
   </div>
   <div class="navbar-user">
     <div>
       <strong id="user-nome"></strong>
       <div id="user-nivel" style="font-size:11px; text-transform:uppercase;"></div>
     </div>
+    <button id="btn-tema-header" onclick="togglePainelTemas()"
+      style="background:transparent; border:1px solid var(--border); color:var(--text2);
+             padding:6px 10px; border-radius:5px; cursor:pointer; font-size:14px;
+             margin-right:6px; transition:all 0.2s;" title="Aparência"
+      onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">🎨</button>
     <button class="btn-sair" onclick="AUTH.logout()">Sair</button>
   </div>
 </nav>
@@ -55,14 +108,9 @@
         <label>Unidade *</label>
         <select id="f-unidade">
           <option value="">-- Seleccione --</option>
-          <option>Un</option>
-          <option>Kg</option>
-          <option>Lt</option>
-          <option>Mt</option>
-          <option>Cx</option>
-          <option>Par</option>
-          <option>Rolo</option>
-          <option>Saco</option>
+          <option>Un</option><option>Kg</option><option>Lt</option>
+          <option>Mt</option><option>Cx</option><option>Par</option>
+          <option>Rolo</option><option>Saco</option>
         </select>
       </div>
       <div class="form-group">
@@ -80,13 +128,11 @@
     </div>
   </div>
 
-  <!-- ALERTAS -->
   <div id="card-alertas" class="card" style="display:none;">
     <div class="card-title">⚠️ Alertas de Stock Mínimo</div>
     <div id="lista-alertas"></div>
   </div>
 
-  <!-- TABELA -->
   <div class="card">
     <div class="card-title">📋 Todos os Materiais</div>
     <div style="margin-bottom:12px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -100,15 +146,9 @@
       <table>
         <thead>
           <tr>
-            <th>Referência</th>
-            <th>Nome</th>
-            <th>Categoria</th>
-            <th>Unid.</th>
-            <th>Stock Mín.</th>
-            <th>Stock Actual</th>
-            <th>Estado</th>
-            <th>Localização</th>
-            <th>Acções</th>
+            <th>Referência</th><th>Nome</th><th>Categoria</th>
+            <th>Unid.</th><th>Stock Mín.</th><th>Stock Actual</th>
+            <th>Estado</th><th>Localização</th><th>Acções</th>
           </tr>
         </thead>
         <tbody id="tbody-materiais">
@@ -119,6 +159,7 @@
   </div>
 </div>
 
+<script src="tema.js"></script>
 <script src="supabase.js"></script>
 <script src="auth.js"></script>
 <script src="utils.js"></script>
@@ -126,6 +167,22 @@
   AUTH.exigir();
   document.getElementById('user-nome').textContent  = AUTH.nome();
   document.getElementById('user-nivel').textContent = AUTH.nivel();
+
+  function toggleDropdown() {
+    const menu = document.getElementById('nav-servicos-menu');
+    const btn  = document.getElementById('nav-servicos-btn');
+    menu.classList.toggle('open');
+    btn.classList.toggle('open');
+  }
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('nav-servicos-menu');
+    const btn  = document.getElementById('nav-servicos-btn');
+    if (!menu) return;
+    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+      menu.classList.remove('open');
+      btn.classList.remove('open');
+    }
+  });
 
   let materiais = [], categorias = [], stockCalc = {}, editId = null;
 
@@ -205,16 +262,12 @@
       const minimo = m.stock_minimo || 0;
       let badge, cor;
       if (stock <= 0) {
-        badge = '<span class="badge badge-red">Esgotado</span>';
-        cor = 'var(--red)';
+        badge = '<span class="badge badge-red">Esgotado</span>'; cor = 'var(--red)';
       } else if (stock <= minimo) {
-        badge = '<span class="badge badge-amber">Stock Baixo</span>';
-        cor = 'var(--amber)';
+        badge = '<span class="badge badge-amber">Stock Baixo</span>'; cor = 'var(--amber)';
       } else {
-        badge = '<span class="badge badge-green">OK</span>';
-        cor = 'var(--green)';
+        badge = '<span class="badge badge-green">OK</span>'; cor = 'var(--green)';
       }
-
       const acoes = AUTH.isGestor() ? `
         <div style="display:flex; gap:6px;">
           <button class="btn btn-ghost btn-sm" onclick="editar('${m.id}')">✏️</button>
@@ -254,11 +307,8 @@
     if (!nome) { showToast('Nome obrigatório!', 'warning'); return; }
     if (!unid) { showToast('Unidade obrigatória!', 'warning'); return; }
 
-    const dados = {
-      referencia: ref, nome, categoria: cat,
-      unidade: unid, stock_minimo: min,
-      localizacao: local, ativo: true
-    };
+    const dados = { referencia: ref, nome, categoria: cat,
+      unidade: unid, stock_minimo: min, localizacao: local, ativo: true };
 
     const res = editId
       ? await db.update('materiais', editId, dados)
