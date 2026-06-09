@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSS Stock — Relatórios</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .nav-dropdown { position:relative; }
+    .nav-dropdown-btn {
+      background:transparent; border:none; color:var(--text2);
+      padding:8px 16px; cursor:pointer; font-family:'Source Sans 3';
+      font-size:13px; letter-spacing:1px; text-transform:uppercase;
+      border-radius:4px; transition:all 0.2s;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .nav-dropdown-btn:hover, .nav-dropdown-btn.open {
+      background:rgba(245,158,11,0.15); color:var(--amber);
+    }
+    .nav-dropdown-menu {
+      position:absolute; top:calc(100% + 8px); left:0;
+      background:var(--navy2); border:1px solid var(--border);
+      border-radius:8px; min-width:220px; z-index:999;
+      box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      padding:6px; display:none;
+    }
+    .nav-dropdown-menu.open { display:block; }
+    .nav-dropdown-item {
+      display:flex; align-items:center; gap:10px;
+      padding:9px 12px; border-radius:5px; cursor:pointer;
+      color:var(--text2); font-size:13px; text-decoration:none;
+      transition:all 0.2s; white-space:nowrap;
+    }
+    .nav-dropdown-item:hover { background:rgba(245,158,11,0.12); color:var(--amber); }
+    .nav-dropdown-item.active { color:var(--amber); font-weight:600; }
+    .nav-divider { height:1px; background:var(--border); margin:4px 0; }
+    .nav-home-btn {
+      background:transparent; border:none; color:var(--text2);
+      padding:8px 16px; cursor:pointer; font-family:'Source Sans 3';
+      font-size:13px; letter-spacing:1px; text-transform:uppercase;
+      border-radius:4px; transition:all 0.2s; text-decoration:none;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .nav-home-btn:hover { background:rgba(245,158,11,0.15); color:var(--amber); }
+
+    /* TABS */
+    .tabs { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--border); }
+    .tab-btn {
+      padding:10px 20px; border:none; background:transparent;
+      color:var(--text2); cursor:pointer; font-family:'Source Sans 3';
+      font-size:14px; font-weight:600; border-bottom:2px solid transparent;
+      margin-bottom:-1px; transition:all .2s;
+    }
+    .tab-btn:hover { color:var(--amber); }
+    .tab-btn.active { color:var(--amber); border-bottom-color:var(--amber); }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+
+    /* PRINT */
+    @media print {
+      .navbar, .tabs, .no-print { display:none !important; }
+      .main { padding:0; max-width:100%; }
+      body { background:white; color:black; }
+      .card { border:1px solid #ccc; box-shadow:none; background:white; }
+      table { font-size:12px; }
+      thead th { background:#f0f0f0 !important; color:black !important; }
+      .badge-green { background:#d4edda; color:#155724; }
+      .badge-red   { background:#f8d7da; color:#721c24; }
+      .badge-amber { background:#fff3cd; color:#856404; }
+      .print-header { display:block !important; }
+    }
+    .print-header {
+      display:none;
+      text-align:center; margin-bottom:24px;
+      border-bottom:2px solid #333; padding-bottom:12px;
+    }
+    .print-header h1 { font-size:20px; margin-bottom:4px; }
+    .print-header p  { font-size:13px; color:#555; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="stock_dashboard.html" class="navbar-brand">
+    <div class="logo-box">DS</div>
+    <div>
+      <div class="brand-name">DANMO SS</div>
+      <div class="brand-sub">Gestão de Stock</div>
+    </div>
+  </a>
+  <div style="display:flex; align-items:center; gap:4px;">
+    <a href="stock_dashboard.html" class="nav-home-btn">🏠 Início</a>
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-btn" id="nav-servicos-btn" onclick="toggleDropdown()">
+        ⚙️ Serviços ▾
+      </button>
+      <div class="nav-dropdown-menu" id="nav-servicos-menu">
+        <a href="stock_entradas.html"      class="nav-dropdown-item">📥 Entradas</a>
+        <a href="stock_saidas.html"        class="nav-dropdown-item">📤 Saídas</a>
+        <a href="stock_materiais.html"     class="nav-dropdown-item">📦 Materiais</a>
+        <div class="nav-divider"></div>
+        <a href="stock_relatorios.html"    class="nav-dropdown-item active">📈 Relatórios</a>
+        <a href="stock_configuracoes.html" class="nav-dropdown-item">⚙️ Configurações</a>
+      </div>
+    </div>
+  </div>
+  <div class="navbar-user">
+    <div>
+      <strong id="user-nome"></strong>
+      <div id="user-nivel" style="font-size:11px; text-transform:uppercase;"></div>
+    </div>
+    <button id="btn-tema-header" onclick="togglePainelTemas()"
+      style="background:transparent; border:1px solid var(--border); color:var(--text2);
+             padding:6px 10px; border-radius:5px; cursor:pointer; font-size:14px;
+             margin-right:6px; transition:all 0.2s;" title="Aparência"
+      onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">🎨</button>
+    <button class="btn-sair" onclick="AUTH.logout()">Sair</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">📈 Relatórios</div>
+  <div class="page-sub">Inventário, movimentos por período e resumo de compras</div>
+
+  <!-- TABS -->
+  <div class="tabs no-print">
+    <button class="tab-btn active" onclick="mudarTab('inventario')">📦 Inventário Actual</button>
+    <button class="tab-btn" onclick="mudarTab('movimentos')">🔄 Movimentos por Período</button>
+    <button class="tab-btn" onclick="mudarTab('compras')">💰 Resumo de Compras</button>
+  </div>
+
+  <!-- TAB 1: INVENTÁRIO -->
+  <div id="tab-inventario" class="tab-content active">
+
+    <div class="print-header">
+      <h1>DANMO SS, Lda — Inventário de Stock</h1>
+      <p id="print-data-inv"></p>
+    </div>
+
+    <div class="card no-print">
+      <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+        <span>📦 Inventário Actual</span>
+        <div style="display:flex; gap:8px;">
+          <select id="inv-filtro-cat" onchange="renderInventario()" style="max-width:180px;">
+            <option value="">Todas as categorias</option>
+          </select>
+          <select id="inv-filtro-estado" onchange="renderInventario()" style="max-width:160px;">
+            <option value="">Todos os estados</option>
+            <option value="ok">OK</option>
+            <option value="baixo">Stock Baixo</option>
+            <option value="esgotado">Esgotado</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs inventário -->
+    <div class="kpi-grid no-print" style="margin-bottom:20px;">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Total Materiais</div>
+        <div class="kpi-value" id="inv-total">—</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Stock OK</div>
+        <div class="kpi-value" id="inv-ok">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Stock Baixo</div>
+        <div class="kpi-value" id="inv-baixo">—</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Esgotados</div>
+        <div class="kpi-value" id="inv-esgotado">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table id="tabela-inventario">
+          <thead>
+            <tr>
+              <th>Referência</th><th>Material</th><th>Categoria</th>
+              <th>Unid.</th><th>Localização</th>
+              <th>Stock Mín.</th><th>Stock Actual</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-inventario">
+            <tr><td colspan="8" class="text-center text-muted" style="padding:24px;">A carregar...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: MOVIMENTOS -->
+  <div id="tab-movimentos" class="tab-content">
+    <div class="card">
+      <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+        <span>🔄 Movimentos por Período</span>
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>Data De</label>
+          <input type="date" id="mov-de">
+        </div>
+        <div class="form-group">
+          <label>Data Até</label>
+          <input type="date" id="mov-ate">
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="mov-tipo">
+            <option value="">Todos</option>
+            <option value="entrada">Entradas</option>
+            <option value="saida">Saídas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Material</label>
+          <select id="mov-material">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="carregarMovimentos()" style="margin-bottom:20px;">
+        🔍 Pesquisar
+      </button>
+
+      <!-- KPIs movimentos -->
+      <div class="kpi-grid" style="margin-bottom:20px;" id="kpi-movimentos" style="display:none;">
+        <div class="kpi-card green">
+          <div class="kpi-label">Total Entradas</div>
+          <div class="kpi-value" id="mov-total-entradas">—</div>
+          <div class="kpi-sub">movimentos</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Total Saídas</div>
+          <div class="kpi-value" id="mov-total-saidas">—</div>
+          <div class="kpi-sub">movimentos</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-label">Qtd Total Entrada</div>
+          <div class="kpi-value" id="mov-qtd-entradas">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Qtd Total Saída</div>
+          <div class="kpi-value" id="mov-qtd-saidas">—</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th><th>Tipo</th><th>Material</th>
+              <th>Qtd</th><th>Unid.</th><th>Fornecedor / Colaborador</th>
+              <th>Departamento</th><th>Obs.</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-movimentos">
+            <tr><td colspan="8" class="text-center text-muted" style="padding:24px;">
+              Selecciona o período e clica Pesquisar</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: COMPRAS -->
+  <div id="tab-compras" class="tab-content">
+    <div class="card">
+      <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+        <span>💰 Resumo de Compras</span>
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>Data De</label>
+          <input type="date" id="comp-de">
+        </div>
+        <div class="form-group">
+          <label>Data Até</label>
+          <input type="date" id="comp-ate">
+        </div>
+        <div class="form-group">
+          <label>Fornecedor</label>
+          <select id="comp-fornecedor">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="carregarCompras()" style="margin-bottom:20px;">
+        🔍 Pesquisar
+      </button>
+
+      <!-- KPIs compras -->
+      <div class="kpi-grid" style="margin-bottom:20px;">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Total Compras</div>
+          <div class="kpi-value" id="comp-total-movs">—</div>
+          <div class="kpi-sub">registos</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Total Gasto (MZN)</div>
+          <div class="kpi-value" id="comp-total-mzn">—</div>
+        </div>
+      </div>
+
+      <!-- Por Fornecedor -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:14px; font-weight:700; color:var(--amber); margin-bottom:12px;">
+          Por Fornecedor
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Fornecedor</th><th>Nº Compras</th><th>Total (MZN)</th></tr>
+            </thead>
+            <tbody id="tbody-por-fornecedor">
+              <tr><td colspan="3" class="text-center text-muted" style="padding:16px;">
+                Selecciona o período e clica Pesquisar</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Detalhe -->
+      <div style="font-size:14px; font-weight:700; color:var(--amber); margin-bottom:12px;">
+        Detalhe das Compras
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th><th>Material</th><th>Qtd</th><th>Unid.</th>
+              <th>Preço Unit.</th><th>Total</th>
+              <th>Fornecedor</th><th>Pro-forma/Cot.</th><th>Comprador</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-compras">
+            <tr><td colspan="9" class="text-center text-muted" style="padding:24px;">
+              Selecciona o período e clica Pesquisar</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="tema.js"></script>
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+<script src="utils.js"></script>
+<script>
+  AUTH.exigir();
+  document.getElementById('user-nome').textContent  = AUTH.nome();
+  document.getElementById('user-nivel').textContent = AUTH.nivel();
+
+  function toggleDropdown() {
+    const menu = document.getElementById('nav-servicos-menu');
+    const btn  = document.getElementById('nav-servicos-btn');
+    menu.classList.toggle('open');
+    btn.classList.toggle('open');
+  }
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('nav-servicos-menu');
+    const btn  = document.getElementById('nav-servicos-btn');
+    if (!menu) return;
+    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+      menu.classList.remove('open');
+      btn.classList.remove('open');
+    }
+  });
+
+  function mudarTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      const tabs = ['inventario','movimentos','compras'];
+      b.classList.toggle('active', tabs[i] === tab);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  let materiais = [], stockCalc = {}, fornecedores = [];
+
+  async function init() {
+    const [mats, movs, forns] = await Promise.all([
+      db.query('materiais', 'ativo=eq.true&order=referencia.asc'),
+      db.query('stock_movimentos', 'estado=eq.confirmado'),
+      db.query('fornecedores', 'ativo=eq.true&order=nome.asc')
+    ]);
+
+    materiais    = mats;
+    fornecedores = forns;
+
+    // Calcular stock
+    movs.forEach(m => {
+      if (!stockCalc[m.material_id]) stockCalc[m.material_id] = 0;
+      if (m.tipo === 'entrada') stockCalc[m.material_id] += Number(m.quantidade);
+      if (m.tipo === 'saida')   stockCalc[m.material_id] -= Number(m.quantidade);
+    });
+
+    // Preencher filtros
+    const cats = [...new Set(materiais.map(m => m.categoria).filter(Boolean))];
+    const selCat = document.getElementById('inv-filtro-cat');
+    cats.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      selCat.appendChild(o);
+    });
+
+    const selMat = document.getElementById('mov-material');
+    materiais.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.id; o.textContent = `${m.referencia} — ${m.nome}`;
+      selMat.appendChild(o);
+    });
+
+    const selForn = document.getElementById('comp-fornecedor');
+    fornecedores.forEach(f => {
+      const o = document.createElement('option');
+      o.value = f.nome; o.textContent = f.nome;
+      selForn.appendChild(o);
+    });
+
+    // Datas default — mês actual
+    const hoje = new Date();
+    const prim = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const form = d => d.toISOString().split('T')[0];
+    document.getElementById('mov-de').value   = form(prim);
+    document.getElementById('mov-ate').value  = form(hoje);
+    document.getElementById('comp-de').value  = form(prim);
+    document.getElementById('comp-ate').value = form(hoje);
+
+    // Data no print
+    document.getElementById('print-data-inv').textContent =
+      'Gerado em: ' + hoje.toLocaleDateString('pt-MZ', {
+        day:'2-digit', month:'long', year:'numeric'
+      });
+
+    renderInventario();
+  }
+
+  // ── INVENTÁRIO ──
+  function renderInventario() {
+    const catFiltro    = document.getElementById('inv-filtro-cat').value;
+    const estadoFiltro = document.getElementById('inv-filtro-estado').value;
+
+    let lista = materiais;
+    if (catFiltro) lista = lista.filter(m => m.categoria === catFiltro);
+
+    const comEstado = lista.map(m => {
+      const stock  = stockCalc[m.id] || 0;
+      const minimo = m.stock_minimo || 0;
+      let estado;
+      if (stock <= 0)      estado = 'esgotado';
+      else if (stock <= minimo) estado = 'baixo';
+      else                 estado = 'ok';
+      return { ...m, _stock: stock, _estado: estado };
+    });
+
+    const filtrada = estadoFiltro
+      ? comEstado.filter(m => m._estado === estadoFiltro)
+      : comEstado;
+
+    // KPIs
+    document.getElementById('inv-total').textContent    = comEstado.length;
+    document.getElementById('inv-ok').textContent       = comEstado.filter(m => m._estado === 'ok').length;
+    document.getElementById('inv-baixo').textContent    = comEstado.filter(m => m._estado === 'baixo').length;
+    document.getElementById('inv-esgotado').textContent = comEstado.filter(m => m._estado === 'esgotado').length;
+
+    const tb = document.getElementById('tbody-inventario');
+    if (filtrada.length === 0) {
+      tb.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding:24px;">
+        Nenhum material encontrado</td></tr>`;
+      return;
+    }
+
+    tb.innerHTML = filtrada.map(m => {
+      let badge, cor;
+      if (m._estado === 'esgotado') {
+        badge = '<span class="badge badge-red">Esgotado</span>'; cor = 'var(--red)';
+      } else if (m._estado === 'baixo') {
+        badge = '<span class="badge badge-amber">Stock Baixo</span>'; cor = 'var(--amber)';
+      } else {
+        badge = '<span class="badge badge-green">OK</span>'; cor = 'var(--green)';
+      }
+      return `<tr>
+        <td><code style="color:var(--amber);">${m.referencia}</code></td>
+        <td><strong>${m.nome}</strong></td>
+        <td>${m.categoria || '—'}</td>
+        <td>${m.unidade}</td>
+        <td>${m.localizacao || '—'}</td>
+        <td>${fmtNum(m.stock_minimo || 0, 2)}</td>
+        <td style="color:${cor}; font-weight:700;">${fmtNum(m._stock, 2)}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── MOVIMENTOS ──
+  async function carregarMovimentos() {
+    const de    = document.getElementById('mov-de').value;
+    const ate   = document.getElementById('mov-ate').value;
+    const tipo  = document.getElementById('mov-tipo').value;
+    const matId = document.getElementById('mov-material').value;
+
+    if (!de || !ate) { showToast('Selecciona o período!', 'warning'); return; }
+
+    let params = `estado=eq.confirmado&data_movimento=gte.${de}&data_movimento=lte.${ate}&order=data_movimento.desc`;
+    if (tipo)  params += `&tipo=eq.${tipo}`;
+    if (matId) params += `&material_id=eq.${matId}`;
+
+    const movs = await db.query('stock_movimentos', params);
+
+    const entradas = movs.filter(m => m.tipo === 'entrada');
+    const saidas   = movs.filter(m => m.tipo === 'saida');
+    const qtdEnt   = entradas.reduce((s, m) => s + Number(m.quantidade), 0);
+    const qtdSai   = saidas.reduce((s, m) => s + Number(m.quantidade), 0);
+
+    document.getElementById('mov-total-entradas').textContent = entradas.length;
+    document.getElementById('mov-total-saidas').textContent   = saidas.length;
+    document.getElementById('mov-qtd-entradas').textContent   = fmtNum(qtdEnt, 2);
+    document.getElementById('mov-qtd-saidas').textContent     = fmtNum(qtdSai, 2);
+
+    const tb = document.getElementById('tbody-movimentos');
+    if (movs.length === 0) {
+      tb.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding:24px;">
+        Nenhum movimento encontrado neste período</td></tr>`;
+      return;
+    }
+
+    tb.innerHTML = movs.map(m => {
+      const mat  = materiais.find(x => x.id === m.material_id);
+      const nome = mat ? `${mat.referencia} — ${mat.nome}` : '—';
+      const unid = mat ? mat.unidade : '';
+      const tipo_badge = m.tipo === 'entrada'
+        ? '<span class="badge badge-green">Entrada</span>'
+        : '<span class="badge badge-red">Saída</span>';
+      const quem = m.tipo === 'entrada'
+        ? (m.fornecedor || '—')
+        : (m.colaborador_nome || '—');
+      return `<tr>
+        <td>${fmtData(m.data_movimento)}</td>
+        <td>${tipo_badge}</td>
+        <td><strong>${nome}</strong></td>
+        <td style="font-weight:700; color:${m.tipo==='entrada'?'var(--green)':'var(--red)}">
+          ${m.tipo==='entrada'?'+':'−'}${fmtNum(m.quantidade, 2)}</td>
+        <td>${unid}</td>
+        <td>${quem}</td>
+        <td>${m.departamento || '—'}</td>
+        <td>${m.observacoes || '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── COMPRAS ──
+  async function carregarCompras() {
+    const de   = document.getElementById('comp-de').value;
+    const ate  = document.getElementById('comp-ate').value;
+    const forn = document.getElementById('comp-fornecedor').value;
+
+    if (!de || !ate) { showToast('Selecciona o período!', 'warning'); return; }
+
+    let params = `tipo=eq.entrada&estado=eq.confirmado&data_movimento=gte.${de}&data_movimento=lte.${ate}&order=data_movimento.desc`;
+    if (forn) params += `&fornecedor=eq.${encodeURIComponent(forn)}`;
+
+    const compras = await db.query('stock_movimentos', params);
+
+    const totalGasto = compras.reduce((s, m) =>
+      s + ((m.preco_unitario || 0) * m.quantidade), 0);
+
+    document.getElementById('comp-total-movs').textContent = compras.length;
+    document.getElementById('comp-total-mzn').textContent  = fmtNum(totalGasto, 2);
+
+    // Por fornecedor
+    const porForn = {};
+    compras.forEach(m => {
+      const f = m.fornecedor || 'Sem fornecedor';
+      if (!porForn[f]) porForn[f] = { count: 0, total: 0 };
+      porForn[f].count++;
+      porForn[f].total += (m.preco_unitario || 0) * m.quantidade;
+    });
+
+    document.getElementById('tbody-por-fornecedor').innerHTML =
+      Object.entries(porForn)
+        .sort((a, b) => b[1].total - a[1].total)
+        .map(([f, v]) => `<tr>
+          <td><strong>${f}</strong></td>
+          <td>${v.count}</td>
+          <td style="color:var(--amber); font-weight:700;">${fmtNum(v.total, 2)} MZN</td>
+        </tr>`).join('') ||
+      `<tr><td colspan="3" class="text-center text-muted" style="padding:16px;">
+        Nenhuma compra encontrada</td></tr>`;
+
+    // Detalhe
+    document.getElementById('tbody-compras').innerHTML =
+      compras.map(m => {
+        const mat   = materiais.find(x => x.id === m.material_id);
+        const nome  = mat ? `${mat.referencia} — ${mat.nome}` : '—';
+        const unid  = mat ? mat.unidade : '';
+        const total = (m.preco_unitario || 0) * m.quantidade;
+        return `<tr>
+          <td>${fmtData(m.data_movimento)}</td>
+          <td><strong>${nome}</strong></td>
+          <td>${fmtNum(m.quantidade, 2)}</td>
+          <td>${unid}</td>
+          <td>${m.preco_unitario ? fmtNum(m.preco_unitario, 2) + ' MZN' : '—'}</td>
+          <td style="color:var(--amber); font-weight:700;">
+            ${total ? fmtNum(total, 2) + ' MZN' : '—'}</td>
+          <td>${m.fornecedor || '—'}</td>
+          <td>${m.numero_po || '—'}</td>
+          <td>${m.comprador_nome || '—'}</td>
+        </tr>`;
+      }).join('') ||
+      `<tr><td colspan="9" class="text-center text-muted" style="padding:24px;">
+        Nenhuma compra encontrada</td></tr>`;
+  }
+
+  init();
+</script>
+</body>
+</html>
